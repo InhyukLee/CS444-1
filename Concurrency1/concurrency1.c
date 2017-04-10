@@ -50,8 +50,8 @@ struct buffer
 void checkSystemType()
 {
     //check if largest data type is bigger than 32 bits.
-    if ((size_t)-1 > 0xffffffffUL
-    ){
+    if ((size_t)-1 > 0xffffffffUL)
+    {
             X86SYSTEM = 0;//is 64bit
     }
     else{
