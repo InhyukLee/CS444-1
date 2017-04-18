@@ -46,13 +46,24 @@ struct DataContainer
 
 void checkSystemType()
 {
+    unsigned int eax = 0x01;
+	unsigned int ebx;
+	unsigned int ecx;
+	unsigned int edx;
+
+    __asm__ __volatile__(
+	                     "cpuid;"
+	                     : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)
+	                     : "a"(eax)
+	                     );
+
     //check if largest data type is bigger than 32 bits.
-    if ((size_t)-1 > 0xffffffffUL)
+    if (ecx & 0x40000000)
     {
-        X86SYSTEM = 0;//is 64bit
+        X86SYSTEM = 1;//is 32bit
     }
     else{
-        X86SYSTEM = 1;//is 32bit
+        X86SYSTEM = 0;//is 64bit
     }
     //printf("::IS X86 SYSTEM: %d\n\n",X86SYSTEM);
 }
@@ -69,7 +80,7 @@ int genRandomNumber(int floor, int ceiling)
     else
     {
         //if x86 fill num with random value.
-        asm("rdrand %0":"=r"(num));
+        __asm__ __volatile__("rdrand %0":"=r"(num));
     }
 
     num = abs(num % (ceiling - floor));
