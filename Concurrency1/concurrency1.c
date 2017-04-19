@@ -1,29 +1,29 @@
-/*****************************
-** Joesph Struth / Kevin Turkington
-** CS444
-** Concurrency 1
-*****************************/
+/**************************************
+ * Alessandro Lim / Kevin Turkington
+ * CS444
+ * Concurrency 1
+ **************************************/
+
+/**
+ * reference: https://www.guyrutenberg.com/2014/05/03/c-mt19937-example/
+ * reference: https://linux.die.net/man/3/pthread_cond_signal
+ * reference: http://www.cs.cmu.edu/afs/cs/academic/class/15492-f07/www/pthreads.html
+ * reference: http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/MT2002/emt19937ar.html
+ * reference: https://codereview.stackexchange.com/questions/147656/checking-if-cpu-supports-rdrand
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
 #include "mt19937ar.h"
-//GLOBALS
 #define BUFFERSIZE 32
-
+//GLOBALS
 //shared buffer for data
 struct DataContainer DC;
-
 //Toggle for system type.
 int X86SYSTEM;
 //END GLOBALS
-
-//reference: https://linux.die.net/man/3/sleep
-//reference: https://www.guyrutenberg.com/2014/05/03/c-mt19937-example/
-//reference: http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/MT2002/emt19937ar.html
-//reference: https://www.cs.nmsu.edu/~jcook/Tools/pthreads/pc.c
-//reference: http://nirbhay.in/blog/2013/07/producer_consumer_pthreads/
-//reference: http://stackoverflow.com/questions/1288189/elegant-and-safe-way-to-determine-if-architecture-is-32bit-or-64bit
 
 typedef struct
 {
@@ -44,7 +44,7 @@ struct DataContainer
     pthread_cond_t producerCond;
 };
 
-void checkSystemType()
+int checkSystemType()
 {
     unsigned int eax = 0x01;
 	unsigned int ebx;
@@ -66,6 +66,8 @@ void checkSystemType()
         X86SYSTEM = 0;//is 64bit
     }
     //printf("::IS X86 SYSTEM: %d\n\n",X86SYSTEM);
+
+    return X86SYSTEM;
 }
 
 int genRandomNumber(int floor, int ceiling)
@@ -75,7 +77,7 @@ int genRandomNumber(int floor, int ceiling)
     if(X86SYSTEM == 0)
     {
         //if 64 bit system fill num using merelene twister.
-        num =  (int)genrand_int32();
+        num =  (int)genrand_int32();//floor
     }
     else
     {
@@ -107,35 +109,36 @@ void *consumerFunc(void *foo)
 {
     while(1)
     {
-        //lock shared buffer
+        //lock thread exculsively to consumer thread.
         pthread_mutex_lock(&DC.shareLock);
-        //item to be consumed
         DATA consumeItem;
         //resize if at max buffer size
         if(DC.consumerIdx >= BUFFERSIZE)
         {
             DC.consumerIdx = 0;
         }
-        //signal producer consumer is ready
+
+        //signal producer thread, that consumer is ready.
         pthread_cond_signal(&(DC.producerCond));
-        //wait for a number from producer
+        //wait for producer to create a thread.
         pthread_cond_wait(&(DC.consumerCond), &DC.shareLock);
-        //if a consumer thread arrives while the buffer is empty
-        //it blocks until a producer adds a new item.
+        
+        //if the data buffer is empty, the consumer reaches 32
+        // in data buffer, wait for producers to create an item.
         if(DC.producerIdx == 0)
         {
             printf("AT MAX size\n");
             pthread_cond_wait(&(DC.consumerCond), &DC.shareLock);
         }
-        //get item to consume from buffer
+        //Begin consuming item.
         consumeItem = DC.items[DC.consumerIdx];
-        //random waiting period
-        sleep(consumeItem.wait);
-        //consume item from buffer
         printf("Consuming Item data: %d\n\n", consumeItem.number);
-        //increase the count of consumed items
+        sleep(consumeItem.wait);
+        //printf("Consumed Item data: %d\n\n", consumeItem.number);
+        
+        //increase the consumers position in the buffer.
         DC.consumerIdx++;
-        //unlock shared buffer
+        // unlock data.
         pthread_mutex_unlock(&DC.shareLock);
     }
 }
@@ -144,17 +147,20 @@ void *producerFunc(void *foo)
 {
     while(1)
     {
-        //lock shared buffer
+        //lock thread exculsively to consumer thread.
         pthread_mutex_lock(&DC.shareLock);
-        //item to be produced
+        
         DATA newItem;
-        //data value and wait time using Mersenne Twister
+        //items number and wait time is randomly generated.
         newItem.number = genRandomNumber(1, 100);
         newItem.wait = genRandomNumber(2,9);
         
+        //print item details.
         printf("Producing Item:\n");
         printItem(&newItem);
-        //block until consumer removes an item
+
+        //if producer position in data buffer is at max
+        // signal to consumer to consume. and reset producer position.
         if(DC.producerIdx == BUFFERSIZE)
         {
             printf("AT MAX size\n");
@@ -162,12 +168,14 @@ void *producerFunc(void *foo)
             pthread_cond_signal(&(DC.consumerCond));
             pthread_cond_wait(&(DC.producerCond), &DC.shareLock);
         }
-        //add item to buffer or overwrite old item.
+
+        //add item to buffer
+        // or overwrite old item, if wrapping around in data buffer.
         DC.items[DC.producerIdx] = newItem;
         DC.producerIdx++;
-        //tell consumer a new item is ready
+
+        //signal to consumer, to consume.
         pthread_cond_signal(&(DC.consumerCond));
-        //wait for consumer to consume
         pthread_cond_wait(&(DC.producerCond), &DC.shareLock);
         //resize if at max buffer size
         if(DC.producerIdx >= BUFFERSIZE)
@@ -175,29 +183,40 @@ void *producerFunc(void *foo)
             printf("AT MAX size\n");
             DC.producerIdx = 0;
         }
-        //shared buffer unlock
+        //unlock data.
         pthread_mutex_unlock(&DC.shareLock);
     }
 
 }
 
-int main()
+int main(int argc,char* argv[])
 {
+    int thread_pair_count,i;
+
+    if(argc <= 1){
+        printf("Note: for multiple threads pairs run './concurrency1 5'\n\n");
+        thread_pair_count = 1;
+    }
+    else{
+        thread_pair_count = atoi(argv[1]);
+    }
+
     checkSystemType();
 
     DC.consumerIdx = 0;
     DC.producerIdx = 0;
 
     //producer and consumer threads
-    pthread_t threads[2];
-    //index var
-    int i = 0;
-    //create threads
-    pthread_create(&threads[0], NULL, consumerFunc, NULL);
-    pthread_create(&threads[1], NULL, producerFunc, NULL);
-    //join threads
+    pthread_t threads[2 * thread_pair_count];
+    
+    for(i = 0; i < thread_pair_count; i++){
+        //create threads
+        pthread_create(&threads[i], NULL, consumerFunc, NULL);
+        pthread_create(&threads[i+1], NULL, producerFunc, NULL);
+    }
 
-    for(i = 0; i < 2; i++)
+    //join threads
+    for(i = 0; i < (2 * thread_pair_count); i++)
     {
         pthread_join(threads[i], NULL);
     }
