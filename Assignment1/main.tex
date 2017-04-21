@@ -1,0 +1,190 @@
+\documentclass[letterpaper,10pt,titlepage]{IEEEtran}
+
+\usepackage{graphicx}                                        
+\usepackage{amssymb}                                         
+\usepackage{amsmath}                                         
+\usepackage{amsthm}                                          
+
+\usepackage{alltt}                                           
+\usepackage{float}
+\usepackage{color}
+\usepackage{url}
+
+\usepackage{balance}
+\usepackage{enumitem}
+\usepackage{pstricks, pst-node}
+
+\usepackage{geometry}
+\geometry{textheight=8.5in, textwidth=6in}
+
+\newcommand{\cred}[1]{{\color{red}#1}}
+\newcommand{\cblue}[1]{{\color{blue}#1}}
+
+\usepackage{hyperref}
+\usepackage{geometry}
+
+\def\name{Alessandro Lim, Kevin Turkington}
+\author{\name}
+\title{CS 444 Assignment 1}
+
+%pull in the necessary preamble matter for pygments output
+%\input{pygments.tex}
+
+%% The following metadata will show up in the PDF properties
+\hypersetup{
+  colorlinks = true,
+  urlcolor = black,
+  pdfauthor = {\name},
+  pdfkeywords = {cs444 ``operating systems 2'' assignment 1},
+  pdftitle = {CS 444 Assignment 1: Getting Acquainted},
+  pdfsubject = {CS 444 Getting Acquainted},
+% * <turkingtonkevin@gmail.com> 2017-04-18T05:16:32.246Z:
+%
+% ^.
+  pdfpagemode = UseNone
+}
+
+\begin{document}
+\maketitle
+\hrulefill
+
+\section{Command List}
+	\begin{enumerate}
+	\item cd /scratch/spring2017/
+    \item mkdir 13-07
+    \item git clone git://git.yoctoproject.org/linux-yocto-3.14 in 13-07 directory
+    \item git checkout v3.14.26
+    Change the version to v3.14.26.
+    \item source /scratch/opt/environment-setup-i586-poky-linux.csh 
+    \newline 
+    Run the environment configuration script for the shell, which is required to run the qemu.
+    \item cp /scratch/spring2017/files/config-3.14.26-yocto-qemu .config
+    \item make menuconfig
+    \item /
+    \item LOCALVERSION 
+    \item make -j4 all
+    \newline 
+    This function is used to build the kernel, and the j4 flag sets the thread used to 4.
+    \newline
+    \newline 
+    On the second terminal:
+    \item source /scratch/opt/environment-setup-i586-poky-linux.csh 
+    \newline 
+    This is again used to set the environment configuration.
+    \item cp /scratch/spring2017/files/bzImage-qemux86.bin . 
+    \item cp /scratch/spring2017/files/core-image-lsb-sdk-qemux86.ext3 . 
+    \item qemu-system-i386 -gdb tcp::5637 -S -nographic -kernel bzImage-qemux86.bin -drive file=core-image-lsb-sdk-qemux86.ext3,if=virtio -enable-kvm -net none -usb -localtime --no-reboot --append "root=/dev/vda rw console=ttyS0 debug" 
+    \newline
+    This starts the qemu VM in the terminal. Port 5637 is used as the port for the group.
+    \newline
+    \newline
+    Back to the first terminal:
+    \item gdb
+    \item target remote:5637
+    \item continue
+    \newline
+    This will connect gdb to the qemu. Typing continue will allow the VM to run on the other terminal.
+    \newline
+    On the second terminal, the virtual machine should now be shown.
+    \item login as root, then type uname -a
+    \newline 
+    uname -a is used to print the system information.
+    \item reboot
+    \newline
+    Since --no-reboot flag is set, the VM will shutdown instead of being reboot.
+    
+    \item qemu-system-i386 -gdb tcp::5637 -S -nographic -kernel linux-yocto-3.14/arch/x86/boot/bzImage  -drive file=core-image-lsb-sdk-qemux86.ext3,if=virtio -enable-kvm -net none -usb -localtime --no-reboot --append "root=/dev/vda rw console=ttyS0 debug"
+    \newline
+    \newline
+    Back to the first terminal:
+    \item gdb
+    \item target remote:5637
+    \item continue
+    \newline
+    on the first terminal:
+    \item root
+    \item uname -a
+    \item reboot
+    
+	\end{enumerate}
+    
+\section{Concurrency}
+  \subsection{What do you think the main point of this assignment is?}
+  The point of this assignment was to review material from CS344 as well as expanding on that material. Specifically how to create multiple threads in a C program and how they can interact with each other by signaling. In addition, this assignment was an introduction to incorporating assembly into our programs.
+  \subsection{How did you personally approach the problem? Design decisions, algorithm, etc.}
+  We begun by creating a basic framework of all the data structures, blank functions, and variables that we thought would be need for the assignment. Afterwards we started reading man pages, and stack overflow threads on event driven programming and how to accomplish it. After we had a basic understanding of events, we started to research how to make threads talk to each other. From there it was a matter of creating the setup for structs to be created and deleted. Then passing access to the data back and forth between the producer and consumer threads.
+  \subsection{How did you ensure your solution was correct? Testing details, for instance.}
+  First we tested the that the program created an exclusive lock to the struct holding all the data, this was done by checking if each thread would block after completing its task. After that was verified we check that each thread successfully signaled to each other when it was done producing or consuming. This was done by creating a collection of print statements unique to producers and consumers. And finally, since in our design that consumer doesnt actually delete data but instead move to the next node until the arrays maximum and wraps back around. We checked that when the producer wrapped back around that it overwrote old data. This was verified by reducing wait times and checking item numbers for duplicates when the prodcuer and consumers wrapped back to the front of our data array.
+  \subsection{What did you learn?}
+  From the concurrency assignment we learned the basic concept of event driven programming and how to implement it theoretically with the producer consumer problem. To expand on this, as for the technologies we used to achieve event based programming, we learned how to lock data to a particular thread using locking and unlocking. as well as how to make threads interact with each other through signaling and blocking (waiting for the mutex to be unlocked.)
+
+\section{Qemu Command flags}
+	%https://man.cx/qemu-system-x86_64(1)
+    %https://manpages.debian.org/jessie/qemu-system-x86/qemu-system-x86_64.1.en.html
+  \emph{
+  qemu-system-i386 -gdb tcp::???? -S -nographic -kernel bzImage-qemux86.bin -drive file=core-image-lsb-sdk-qemux86.ext3,if=virtio -enable-kvm -net none -usb -localtime --no-reboot --append "root=/dev/vda rw console=ttyS0 debug".}
+  \linebreak
+  \begin{enumerate}
+  
+    \item qemu-system-i386
+    \linebreak
+    Begins a 32bit qemu session.
+
+    \item -gdb
+    \linebreak
+    Creates opens a gdb-server on a specified port. In this case we are using port 5637
+    
+    \item -S
+    \linebreak
+    Disallows the CPU to start on boot.
+    
+    \item -nographic
+    \linebreak
+    Qemu is set to a command line interface and will not start a desktop enviroment like KDE, Cinnamon, or Unity.
+    
+    \item -kernel
+    \linebreak
+    Boots a kernel without installing the disk image.
+    
+    \item -drive
+    \linebreak
+    Indicates a specific drive for the Qemu instance. In this case a specific file is being used "core-image-lsb-sdk-qemux86.ext3". Additionally a specific interface is being used "virtio -enable-kvm"
+    
+    \item -net
+    \linebreak
+    Prevents the kernel from configuring any network devices to this instance.
+    
+    \item -usb
+    \linebreak
+    Enables the use of the USB driver.
+    
+    \item -localtime
+    \linebreak
+    Specifies the local-time must be used for this instance.
+    
+    \item --no-reboot
+    \linebreak
+    If told to reboot, the instance will end instead.
+    
+    \item --append
+    \linebreak
+    Uses a specific kernel command at startup.
+  \end{enumerate}
+  
+ \section{Github Log}
+ 	%helpful header for gitlog formatting.
+ 	%\begin{tabular}{l l p{1.5in}}\textbf{Detail} & \textbf{Author} & \textbf{Description}\\\hline
+ 	\input{gitlog_a1.tex}
+    
+\section{Work Log}
+	\input{worklog_a1.tex}
+    
+% bibliography
+\nocite{*}%if nothing is referenced it will still show up in refs
+\bibliographystyle{plain}
+\bibliography{refs_a1}
+%end bibliography
+
+%input the pygmentized output of mt19937ar.c, using a (hopefully) unique name
+%this file only exists at compile time. Feel free to change that.
+\end{document}
