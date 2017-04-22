@@ -12,7 +12,15 @@ TRG	= $(SRC:%.tex=%.dvi)
 PSF	= $(SRC:%.tex=%.ps)
 PDF	= $(SRC:%.tex=%.pdf)
 
+CC:=gcc
+CFLAGS:= -Wall -pthread
+
+#wont build all without concurrency1 under pdf tag.
 pdf: $(PDF)
+	$(CC) concurrency1.c $(CFLAGS) -o concurrency1
+
+concurrency1: concurrency1.c mt19937ar.h
+	$(CC) concurrency1.c $(CFLAGS) -o concurrency1
 
 ps: $(PSF)
 
@@ -36,10 +44,11 @@ show: $(TRG)
 showps: $(PSF)
 	@for i in $(PSF) ; do $(GH) $$i & done
 
-all: pdf concurrency1
+all: pdf
 
 clean:
 	rm -f *.pdf *.ps *.dvi *.out *.log *.aux *.bbl *.blg *.pyg
+	rm concurrency1
 
 .PHONY: all show clean ps pdf showps
 
