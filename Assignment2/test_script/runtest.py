@@ -1,10 +1,4 @@
 #!/usr/bin/env python
-##########################################
-## Kevin Turkington
-## 3/5/17
-## CS344
-## py assignment
-##########################################
 import string
 import random
 import os
@@ -32,9 +26,7 @@ makedir('testdir')
 
 for i in range(random.randint(10,50)):#write file
     WritePtr = open('test'+str(i)+'.txt','w+')
-    # for additional newline replace with the following
-    # WritePtr.write(GenRandomletters() + '\n')
-    WritePtr.write(GenRandomletters(random.randint(100,10000)))
+    WritePtr.write(GenRandomletters(random.randint(100,10000)) + '\n')
     WritePtr.close()
 
 #####End Program#######
