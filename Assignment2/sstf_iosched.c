@@ -29,6 +29,7 @@ static void sstf_merged_requests(struct request_queue *q, struct request *rq,
 static int sstf_dispatch(struct request_queue *q, int force)
 {
 	struct sstf_data *sd = q->elevator->elevator_data;
+	struct request *prev_node, *next_node;
 
 	if (!list_empty(&sd->queue)) {
 		struct request *rq;
@@ -43,10 +44,18 @@ static int sstf_dispatch(struct request_queue *q, int force)
 			rq = list_entry(sd->queue.next, struct request, queuelist);
 
 		} else {
+			prev_node = list_entry(rq->prev, struct request, queuelist);
+			next_node = list_entry(rq->next, struct request, queuelist);
+
+			if (blk_rq_pos(next_node) > sd->elv_start_positionhead_pos) {
+				rq = nextrq;
+			} else {
+				rq = prevrq;
+			}
 
 		}
 
-		rq = list_entry(sd->queue.next, struct request, queuelist);
+		// rq = list_entry(sd->queue.next, struct request, queuelist);
 		list_del_init(&rq->queuelist);
 		
 		sd->elv_start_position = blk_rq_sectors(rq) + blk_rq_pos(rq);
