@@ -7,15 +7,17 @@
 #include <linux/module.h>
 #include <linux/slab.h>
 #include <linux/init.h>
+#include <linux/list.h>
 
 /*
  * References:
- *
+ * [0] http://lxr.free-electrons.com/source/include/linux/blkdev.h
+ * [1] http://lxr.free-electrons.com/source/include/linux/list.h
  */
 
 struct sstf_data {
 	struct list_head queue;
-	sector_t disk_pos;
+	sector_t elv_start_position; // [0] line 976.
 };
 
 static void sstf_merged_requests(struct request_queue *q, struct request *rq,
@@ -30,9 +32,25 @@ static int sstf_dispatch(struct request_queue *q, int force)
 
 	if (!list_empty(&sd->queue)) {
 		struct request *rq;
+
+		/**
+		 * single item in elevator data
+		 * because its doubly linked and circular next and prev
+		 * should be the same.
+		 */
+		if(list_is_singular(&sq->queue)){
+			kprint(KERN_DEBUG "SSTF: dispatching single item in elv data\n");
+			rq = list_entry(sd->queue.next, struct request, queuelist);
+
+		} else {
+
+		}
+
 		rq = list_entry(sd->queue.next, struct request, queuelist);
 		list_del_init(&rq->queuelist);
-		elv_dispatch_sort(q, rq);
+		
+		sd->elv_start_position = blk_rq_sectors(rq) + blk_rq_pos(rq);
+		elv_dispatch_add_tail(q, rq);
 		return 1;
 	}
 	return 0;
@@ -41,8 +59,30 @@ static int sstf_dispatch(struct request_queue *q, int force)
 static void sstf_add_request(struct request_queue *q, struct request *rq)
 {
 	struct sstf_data *sd = q->elevator->elevator_data;
+	struct list_head *curr_pos = NULL;
+	struct request *curr_node, *next_node;
 
-	list_add_tail(&rq->queuelist, &sd->queue);
+	//doesnt matter where rq is added if empty.
+	if (list_empty(&sd->queue)) {
+		kprint(KERN_DEBUG "SSTF: queue list empty adding item to queue.\n");
+		list_add_tail(&rq->queuelist, &sd->queue);
+	} else {
+
+		//list iterate
+		kprint(KERN_DEBUG "SSTF: add_request: begin iterating queue.\n");
+		list_for_each(curr_pos,&sd->queue) {
+			
+			curr_node = list_entry(curr_pos, struct request, queuelist);
+			next_node = list_entry(curr_pos->next, struct request, queuelist);
+
+			//if request sector position is higher than current.
+			if(blk_rq_pos(curr_pos) < blk_rq_pos(rq)){
+				kprint(KERN_DEBUG "SSTF: add_request: inserting  item via insert sort.\n");
+				__list_add(&rq->queuelist,&curr_node->queuelist,&next_node->queuelist);
+				break;
+			}
+		}
+	}
 }
 
 static struct request *
@@ -70,22 +110,22 @@ static int sstf_init_queue(struct request_queue *q, struct elevator_type *e)
 	struct sstf_data *sd;
 	struct elevator_queue *eq;
 
-	eq = elevator_alloc(q, e);
-	if (!eq)
-		return -ENOMEM;
+	// eq = elevator_alloc(q, e);
+	// if (!eq)
+	// 	return -ENOMEM;
 
 	sd = kmalloc_node(sizeof(*sd), GFP_KERNEL, q->node);
 	if (!sd) {
 		kobject_put(&eq->kobj);
 		return -ENOMEM;
 	}
-	eq->elevator_data = sd;
+	//eq->elevator_data = sd;
 
 	INIT_LIST_HEAD(&sd->queue);
-
-	spin_lock_irq(q->queue_lock);
-	q->elevator = eq;
-	spin_unlock_irq(q->queue_lock);
+	sd->elv_start_position = 0; //starting position init to zero.
+	// spin_lock_irq(q->queue_lock);
+	// q->elevator = eq;
+	// spin_unlock_irq(q->queue_lock);
 	return 0;
 }
 
