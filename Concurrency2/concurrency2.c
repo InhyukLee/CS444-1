@@ -84,8 +84,10 @@ void put_forks(struct philosopher *ph)
 	pthread_mutex_unlock(&forks[second_fork]);
 }
 
-void *philosopher_do(struct philosopher *ph)
+void *philosopher_do(void *phil)
 {
+	struct philosopher *ph = (struct philosopher *)phil;
+
 	while(1) {
 		think(ph);
 		get_forks(ph);
