@@ -17,7 +17,7 @@
 
 struct sstf_data {
 	struct list_head queue;
-	sector_t elv_start_position; // [0] line 976.
+	// sector_t elv_start_position; // [0] line 976.
 };
 
 static void sstf_merged_requests(struct request_queue *q, struct request *rq,
@@ -29,37 +29,14 @@ static void sstf_merged_requests(struct request_queue *q, struct request *rq,
 static int sstf_dispatch(struct request_queue *q, int force)
 {
 	struct sstf_data *sd = q->elevator->elevator_data;
-	struct request *prev_node, *next_node;
 
+	//Try to put the fields that are referenced together in the same cacheline. then
+	//get the first element from a list
 	if (!list_empty(&sd->queue)) {
 		struct request *rq;
-
-		/**
-		 * single item in elevator data
-		 * because its doubly linked and circular next and prev
-		 * should be the same.
-		 */
-		if(list_is_singular(&sq->queue)){
-			kprint(KERN_DEBUG "SSTF: dispatching single item in elv data\n");
-			rq = list_entry(sd->queue.next, struct request, queuelist);
-
-		} else {
-			prev_node = list_entry(rq->prev, struct request, queuelist);
-			next_node = list_entry(rq->next, struct request, queuelist);
-
-			if (blk_rq_pos(next_node) > sd->elv_start_positionhead_pos) {
-				rq = nextrq;
-			} else {
-				rq = prevrq;
-			}
-
-		}
-
-		// rq = list_entry(sd->queue.next, struct request, queuelist);
+		rq = list_entry(sd->queue.next, struct request, queuelist);
 		list_del_init(&rq->queuelist);
-		
-		sd->elv_start_position = blk_rq_sectors(rq) + blk_rq_pos(rq);
-		elv_dispatch_add_tail(q, rq);
+		elv_dispatch_sort(q, rq); //dont know what it does gonna leave it here
 		return 1;
 	}
 	return 0;
@@ -131,7 +108,7 @@ static int sstf_init_queue(struct request_queue *q, struct elevator_type *e)
 	//eq->elevator_data = sd;
 
 	INIT_LIST_HEAD(&sd->queue);
-	sd->elv_start_position = 0; //starting position init to zero.
+	// sd->elv_start_position = 0; //starting position init to zero.
 	// spin_lock_irq(q->queue_lock);
 	// q->elevator = eq;
 	// spin_unlock_irq(q->queue_lock);
@@ -176,4 +153,4 @@ module_exit(sstf_exit);
 
 MODULE_AUTHOR("Alessandro Lim, Kevin Turkington");
 MODULE_LICENSE("GPL");
-MODULE_DESCRIPTION("No-op IO scheduler");
+MODULE_DESCRIPTION("SSTF IO scheduler");
