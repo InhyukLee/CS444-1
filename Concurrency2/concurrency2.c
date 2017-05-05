@@ -4,13 +4,14 @@
  * CS444
  * Concurrency 2
  **************************************/
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
 //GLOBALS
 pthread_mutex_t print_lock;
-pthread_mutex_t fork[5];
+pthread_mutex_t forks[5];
 ////////
 
 struct philosopher
@@ -43,12 +44,12 @@ void get_forks(struct philosopher *ph)
 	pthread_mutex_lock(&print_lock);
 	printf("%s tries to get fork number %d\n", ph-> name,first_fork);
 	pthread_mutex_unlock(&print_lock);
-	pthread_mutex_lock(&fork[first_fork]);
+	pthread_mutex_lock(&forks[first_fork]);
 	//second fork
 	pthread_mutex_lock(&print_lock);
 	printf("%s tries to get fork number %d\n", ph-> name,second_fork);
 	pthread_mutex_unlock(&print_lock);
-	pthread_mutex_lock(&fork[second_fork]);
+	pthread_mutex_lock(&forks[second_fork]);
 }
 
 void eat(struct philosopher *ph)
@@ -79,13 +80,13 @@ void put_forks(struct philosopher *ph)
 	pthread_mutex_lock(&print_lock);
 	printf("%s puts down the forks.\n", ph-> name);
 	pthread_mutex_unlock(&print_lock);
-	pthread_mutex_unlock(&fork[first_fork]);
-	pthread_mutex_unlock(&fork[second_fork]);
+	pthread_mutex_unlock(&forks[first_fork]);
+	pthread_mutex_unlock(&forks[second_fork]);
 }
 
 void *philosopher_do(struct philosopher *ph)
 {
-	while(true) {
+	while(1) {
 		think(ph);
 		get_forks(ph);
 		eat(ph);
@@ -95,8 +96,10 @@ void *philosopher_do(struct philosopher *ph)
 
 int main()
 {
+	int i;
 	//declaring philosophers
-	struct philosopher philosophers[5];
+	struct philosopher *philosophers;
+	philosophers = malloc(sizeof(struct philosopher)*5);
 	//naming
 	strcpy(philosophers[0].name, "Plato");
 	strcpy(philosophers[1].name, "Aristotle");
@@ -109,16 +112,19 @@ int main()
 	}
 	
 	//initializing mutex
-	pthread_mutex_init(&print_lock);
+	pthread_mutex_init(&print_lock, NULL);
 	for (i = 0; i < 5; i++) {
-		pthread_mutex_init(&fork[i]);
+		pthread_mutex_init(&forks[i], NULL);
 	}
 	
 	pthread_t threads[5];
 	for (i = 0; i < 5; i++) {
-		pthread_create(&threads[i], NULL, philosopher_do, philosophers[i]);
+		pthread_create(&threads[i], NULL, philosopher_do, &philosophers[i]);
 	}
 	
+	for (i = 0; i < 5; i++) {
+		pthread_join(threads[i],NULL);
+	}
 	
 	return 0;
 }
