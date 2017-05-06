@@ -1,0 +1,8 @@
+compress
+
+tar czf writing1.tar.bz2 writing1/
+or use tarball software to make .tar.bz2
+
+decompress test
+
+tar -vxjf writing1.tar.bz2

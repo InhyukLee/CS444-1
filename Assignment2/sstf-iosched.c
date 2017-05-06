@@ -18,7 +18,6 @@
 
 struct sstf_data {
 	struct list_head queue;
-	// sector_t elv_start_position; // [0] line 976.
 };
 
 static void sstf_merged_requests(struct request_queue *q, struct request *rq,
@@ -36,6 +35,9 @@ static int sstf_dispatch(struct request_queue *q, int force)
 	if (!list_empty(&sd->queue)) {
 		struct request *rq;
 		rq = list_entry(sd->queue.next, struct request, queuelist);
+
+		printk(KERN_DEBUG "SSTF: dispatching sector: %lu \n",blk_rq_pos(rq));
+		
 		list_del_init(&rq->queuelist);
 		elv_dispatch_sort(q, rq); //dont know what it does gonna leave it here
 		return 1;
@@ -46,7 +48,7 @@ static int sstf_dispatch(struct request_queue *q, int force)
 static void sstf_add_request(struct request_queue *q, struct request *rq)
 {
 	struct sstf_data *sd = q->elevator->elevator_data;
-	struct list_head *curr_pos = NULL;
+	struct list_head *curr_pos;
 	struct request *curr_node, *next_node;
 
 	//doesnt matter where rq is added if empty.
@@ -65,7 +67,8 @@ static void sstf_add_request(struct request_queue *q, struct request *rq)
 			//if request sector position is higher than current.
 			if(blk_rq_pos(curr_node) < blk_rq_pos(rq)){
 				printk(KERN_DEBUG "SSTF: add_request: inserting  item via insert sort.\n");
-				__list_add(&rq->queuelist,&curr_node->queuelist,&next_node->queuelist);
+				//__list_add(&rq->queuelist,&curr_node->queuelist,&next_node->queuelist);
+				list_add(&rq->queuelist,&curr_node->queuelist);
 				break;
 			}
 		}
@@ -113,6 +116,7 @@ static int sstf_init_queue(struct request_queue *q, struct elevator_type *e)
 	// spin_lock_irq(q->queue_lock);
 	// q->elevator = eq;
 	// spin_unlock_irq(q->queue_lock);
+	printk(KERN_DEBUG "SSTF: INIT queue\n");
 	return 0;
 }
 
