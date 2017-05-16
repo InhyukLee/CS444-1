@@ -1,8 +1,0 @@
-to patch kernel.
-
-1. cd to clean kernel
-2. cd to block/
-3. cp assignment2.patch into block/
-4. run:
-	patch < assignment2.patch
-5. build kernel.
