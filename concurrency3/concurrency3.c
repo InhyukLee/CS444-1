@@ -30,7 +30,7 @@ void *inserter(struct list_head *head, int d)
 	struct list_node *iterator;
 	struct list_node *temp;
 	if (head->head == NULL) {
-		return;
+		head->head = (struct list_node*)malloc(sizeof(struct list
 	}
 	else {
 		iterator = head->head;
@@ -73,23 +73,37 @@ void *searcher(struct list_head *head, int d)
 void *deleter(struct list_head *head, int d)
 {
 	//wait for nosearcher and noinserter
-	struct list_node *iterator, *temp;
+	struct list_node *iterator, *iteratorp;
+	iteratorp = NULL;
+	int pos = 0;
 	if (head->head == NULL) {
 		//print that the head is empty #thread num
+		printf("Deleter %d: Head is empty.\n",pthread_self());
+		return;
 	}
-	else {
-		if (head->head->data == d) {
-			temp = head->head;
-			head->head = head->head->next;
-			free(temp);
-		}
-		else {
+	for (iterator = head->head; iterator != NULL; iteratorp = iterator, iterator = iterator->next) {
+		if (iterator->dat == d) {
+			if (iteratorp == NULL) {
+				head->head = iterator->next;
+				free(iterator);
+				//print that the thread deleted:
+				printf("Deleter %d: Deleted %d.\n",pthread_self(), d);
+				return;
+			}
+			else {
+				iteratorp->next = iterator->next;
+				free(iterator);
+				//prints that the thread deleted:
+				printf("Deleter %d: Deleted %d.\n",pthread_self(), d);
+				return;
+			}
 		}
 	}
+	//prints that the thread could not find x
 	//signal noinsert and nosearcher
 }
 
 int main()
-{
+{	
 	return 0;
 }
