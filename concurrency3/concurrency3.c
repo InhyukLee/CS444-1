@@ -4,13 +4,18 @@
  * CS444
  * Concurrency 3
  **************************************/
+ //Reference: https://adrientetar.github.io/doc/other/Semaphore.pdf
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
 //GLOBALS
+sem_t no_inserter;
+sem_t insert_switch;
 
+sem_t no_searcher;
+sem_t no_deleter;
 /////////
 
 struct list_node
@@ -30,7 +35,9 @@ void *inserter(struct list_head *head, int d)
 	struct list_node *iterator;
 	struct list_node *temp;
 	if (head->head == NULL) {
-		head->head = (struct list_node*)malloc(sizeof(struct list
+		head->head = (struct list_node*)malloc(sizeof(struct list_node));
+		head->head->data = d;
+		head->head->next = NULL;
 	}
 	else {
 		iterator = head->head;
@@ -41,7 +48,8 @@ void *inserter(struct list_head *head, int d)
 		temp->data = d;
 		temp->next = NULL;
 		iterator->next =  temp;
-	} 
+	}
+	printf("Inserter %d: Inserted %d.\n", pthread_self(), d));
 	return;
 	//signal noInserter and insertswitch
 }
@@ -51,20 +59,21 @@ void *searcher(struct list_head *head, int d)
 	//wait for nosearcher
 	struct list_node *iterator;
 	if (head->head == NULL) {
-		//print that the thread couldn't find d
+		printf("Searcher %d: Head is empty.\n", pthread_self());
+		return;
 	}
 	else {
 		iterator = head->head;
 		while (iterator != NULL) {
 			if (iterator->data == d) {
-				//print that the thread has found d
+				printf("Searcher %d: Found %d.\n", pthread_self(), d);
 				return;
 			}
 			else {
 				iterator =  iterator->next;
 			}
 		}
-		//print that the thread could not find d
+		printf("Searcher %d: Could not find %d.\n", pthread_self(), d);
 		return;
 	}
 	//signal nosearcher
