@@ -15,11 +15,13 @@
  * [2] http://elixir.free-electrons.com/linux/latest/source/crypto/testmgr.c#L1045
  * [3] https://github.com/JonathanSalwan/stuffz/blob/master/lkm_samples/crypto_aes.c
  * [4] http://blog.superpat.com/2010/05/04/a-simple-block-driver-for-linux-kernel-2-6-31/comment-page-2/#comment-148884
+ * [5] https://www.kernel.org/doc/html/v4.10/crypto/api-skcipher.html#single-block-cipher-api
  */
 
  /**
   * NOTES:
-  * This project is heavily based off [2] (Lines 1042 - 1050) as well as [3]
+  * This project is heavily based off [2] (Lines 1042 - 1050) as well as [3].
+  * specfics about each crypto function found from ref [5].
   */
 
 #include <linux/module.h>
