@@ -37,9 +37,14 @@ struct list_head
 void insert(struct list_head *head, int d)
 {
 	//only one inserter will wait for no inserter, then all other inserter will wait for that particular inserter
-	sem_wait(&icounter);
+	if(sem_trywait(&icounter) < 0){
+		printf("Inserter %lu: Is blocked.\n", pthread_self());
+		sem_wait(&icounter);
+	}
+
 	insertcounter += 1;
-	if (insertcounter == 1) {
+	if (insertcounter == 1 && sem_trywait(&no_inserter) < 0) {
+		printf("Inserter %lu: Is blocked.\n", pthread_self());
 		sem_wait(&no_inserter);
 	}
 	sem_post(&icounter);
@@ -61,7 +66,7 @@ void insert(struct list_head *head, int d)
 		temp->next = NULL;
 		iterator->next =  temp;
 	}
-	printf("Inserter %d: Inserted %d.\n", pthread_self(), d);
+	printf("Inserter %lu: Inserted %d.\n", pthread_self(), d);
 	//signal noInserter and insertswitch
 	sem_wait(&icounter);
 	insertcounter -= 1;
@@ -74,22 +79,29 @@ void insert(struct list_head *head, int d)
 
 void search(struct list_head *head, int d)
 {
-	sem_wait(&scounter);
+	if(sem_trywait(&scounter) < 0){
+		printf("Searcher %lu: Is blocked.\n", pthread_self());
+		sem_wait(&scounter);
+	}
+
+	// sem_wait(&scounter);
 	searchcounter += 1;
-	if (searchcounter == 1) {
+	if (searchcounter == 1 && sem_trywait(&no_searcher) < 0) {
+		printf("Searcher %lu: Is blocked.\n", pthread_self());
 		sem_wait(&no_searcher);
 	}
+
 	sem_post(&scounter);
 	int searched = 0;
 	struct list_node *iterator;
 	if (head->head == NULL) {
-		printf("Searcher %d: Head is empty.\n", pthread_self());
+		printf("Searcher %lu: Head is empty.\n", pthread_self());
 	}
 	else {
 		iterator = head->head;
 		while (iterator != NULL) {
 			if (iterator->data == d) {
-				printf("Searcher %d: Found %d.\n", pthread_self(), d);
+				printf("Searcher %lu: Found %d.\n", pthread_self(), d);
 				searched = 1;
 				break;
 			}
@@ -98,7 +110,7 @@ void search(struct list_head *head, int d)
 			}
 		}
 		if (searched == 0) {
-		printf("Searcher %d: Could not find %d.\n", pthread_self(), d);
+		printf("Searcher %lu: Could not find %d.\n", pthread_self(), d);
 		}
 	}
 	
@@ -112,17 +124,26 @@ void search(struct list_head *head, int d)
 
 void delete(struct list_head *head, int d)
 {	
-	//wait for nosearcher and noinserter
-	sem_wait(&no_searcher);
-	sem_wait(&no_inserter);
-	sem_wait(&no_deleter);
+
+	if(sem_trywait(&no_searcher) < 0){
+		printf("Deleter %lu: Is blocked.\n", pthread_self());
+		sem_wait(&no_searcher);
+	}
+	if(sem_trywait(&no_inserter) < 0){
+		printf("Deleter %lu: Is blocked.\n", pthread_self());
+		sem_wait(&no_inserter);
+	}
+	if(sem_trywait(&no_deleter) < 0){
+		printf("Deleter %lu: Is blocked.\n", pthread_self());
+		sem_wait(&no_deleter);
+	}
 	struct list_node *iterator, *iteratorp;
 	iteratorp = NULL;
 	int pos = 0;
 	int deleted = 0;
 	if (head->head == NULL) {
 		//print that the head is empty #thread num
-		printf("Deleter %d: Head is empty.\n",pthread_self());
+		printf("Deleter %lu: Head is empty.\n",pthread_self());
 		deleted = 1;
 	}
 	for (iterator = head->head; iterator != NULL; iteratorp = iterator, iterator = iterator->next) {
@@ -131,7 +152,7 @@ void delete(struct list_head *head, int d)
 				head->head = iterator->next;
 				free(iterator);
 				//print that the thread deleted:
-				printf("Deleter %d: Deleted %d.\n",pthread_self(), d);
+				printf("Deleter %lu: Deleted %d.\n",pthread_self(), d);
 				deleted = 1;
 				break;
 			}
@@ -139,7 +160,7 @@ void delete(struct list_head *head, int d)
 				iteratorp->next = iterator->next;
 				free(iterator);
 				//prints that the thread deleted:
-				printf("Deleter %d: Deleted %d.\n",pthread_self(), d);
+				printf("Deleter %lu: Deleted %d.\n",pthread_self(), d);
 				deleted = 1;
 				break;
 			}
@@ -148,7 +169,7 @@ void delete(struct list_head *head, int d)
 	
 	//prints that the thread could not find x
 	if (deleted == 0) {
-		printf("Deleter %d: Could not find %d.\n",pthread_self(), d);
+		printf("Deleter %lu: Could not find %d.\n",pthread_self(), d);
 	}
 	//signal noinsert and nosearcher
 	sem_post(&no_searcher);
