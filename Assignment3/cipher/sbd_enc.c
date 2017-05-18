@@ -54,8 +54,11 @@ static int logical_block_size = 512;
 module_param(logical_block_size, int, 0);
 static int nsectors = 1024; /* How big the drive is */
 module_param(nsectors, int, 0);
-static char* enc_key = "Password123";
-module_param(enc_key, charp, 0);
+
+static char* key = "Password123";
+module_param(key, charp, 0);
+
+static int key_set = 0;
 /* END GLOBALS */
 
 /*
@@ -99,15 +102,20 @@ static void sbd_enc_transfer(struct sbd_enc_device *dev, sector_t sector,
 	unsigned long offset = sector * logical_block_size;
 	unsigned long nbytes = nsect * logical_block_size;
 
-	u8 *hex_str;
+	u8 *hex_str, *hex_buf, *hex_disk;
+	
 
 	unsigned int i;
 
-	if(crypto_cipher_setkey(tfm, enc_key, strlen(enc_key)) < 0){
-		printk("sbd_enc: Failed to set encryption key\n");
-		return;
-	} 
 	
+	if(key_set == 0){
+		crypto_cipher_setkey(tfm, key, strlen(key));
+		printk("sbd_enc: encryption key set\n");
+		key_set = 1;
+	}
+ 
+	hex_disk = dev->data + offset;
+	hex_buf = buffer;
 
 	if ((offset + nbytes) > dev->size) {
 		printk (KERN_NOTICE "sbd_enc: Beyond-end write (%ld %ld)\n", offset, nbytes);
@@ -118,8 +126,9 @@ static void sbd_enc_transfer(struct sbd_enc_device *dev, sector_t sector,
 
 		printk("sbd_enc: Begin write/encryption\n");
 
+		
 		for(i = 0; i < nbytes +1; i += crypto_cipher_blocksize(tfm)){
-			crypto_cipher_encrypt_one(tfm, dev->data + offset + i, buffer + i);
+			crypto_cipher_encrypt_one(tfm, hex_disk + i, hex_buf + i);
 		}
 
 		printk("sbd_enc: printing original hex data\n");
@@ -137,7 +146,7 @@ static void sbd_enc_transfer(struct sbd_enc_device *dev, sector_t sector,
 		printk("sbd_enc: Begin read/decryption\n");
 
 		for(i = 0; i < nbytes +1; i += crypto_cipher_blocksize(tfm)){
-			crypto_cipher_decrypt_one(tfm, buffer + i,dev->data + offset + i);
+			crypto_cipher_decrypt_one(tfm, hex_buf + i,hex_disk + i);
 		}
 
 		printk("sbd_enc: printing original hex data\n");
@@ -197,6 +206,9 @@ static struct block_device_operations sbd_enc_ops = {
 };
 
 static int __init sbd_enc_init(void) {
+
+	printk("sbd_enc: block device initializing.\n");
+
 	/*
 	 * Set up our internal device.
 	 */
@@ -220,6 +232,14 @@ static int __init sbd_enc_init(void) {
 		printk(KERN_WARNING "sbd_enc: unable to get major number\n");
 		goto out;
 	}
+
+	/* allocing cipher */
+	tfm = crypto_alloc_cipher("aes",0,0);
+	if(!tfm){
+		printk(KERN_WARNING "sbd_enc: unable to alloc crypto.\n");
+		goto out;
+	}
+
 	/*
 	 * And the gendisk structure.
 	 */
@@ -235,12 +255,7 @@ static int __init sbd_enc_init(void) {
 	Device.gd->queue = Queue;
 	add_disk(Device.gd);
 
-	/* allocing cipher */
-	tfm = crypto_alloc_cipher("aes",0,0);
-	if(!tfm){
-		printk("sbd_enc: unable to alloc crypto.\n");
-		goto out;
-	}
+	printk("sbd_enc: block device initialized.\n");
 
 	return 0;
 
@@ -253,14 +268,17 @@ out:
 
 static void __exit sbd_enc_exit(void)
 {
+	printk("sbd_enc: freeing block device.\n");
+
+	/* Freeing crypto */
+	crypto_free_cipher(tfm);
 	del_gendisk(Device.gd);
 	put_disk(Device.gd);
 	unregister_blkdev(major_num, "sbd_enc");
 	blk_cleanup_queue(Queue);
 	vfree(Device.data);
 
-	/* Freeing crypto */
-	crypto_free_cipher(tfm);
+	printk("sbd_enc: freed block device.\n");
 }
 
 module_init(sbd_enc_init);
