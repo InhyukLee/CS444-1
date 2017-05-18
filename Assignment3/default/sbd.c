@@ -8,22 +8,6 @@
 
 // SOURCE: http://blog.superpat.com/2010/05/04/a-simple-block-driver-for-linux-kernel-2-6-31/
 
-/**
- * REFS:
- * [0] http://elixir.free-electrons.com/linux/latest/source/crypto/cipher.c#L63
- * [1] http://www.makelinux.net/books/lkd2/ch16lev1sec6
- * [2] http://elixir.free-electrons.com/linux/latest/source/crypto/testmgr.c#L1045
- * [3] https://github.com/JonathanSalwan/stuffz/blob/master/lkm_samples/crypto_aes.c
- * [4] http://blog.superpat.com/2010/05/04/a-simple-block-driver-for-linux-kernel-2-6-31/comment-page-2/#comment-148884
- * [5] https://www.kernel.org/doc/html/v4.10/crypto/api-skcipher.html#single-block-cipher-api
- */
-
- /**
-  * NOTES:
-  * This project is heavily based off [2] (Lines 1042 - 1050) as well as [3].
-  * specfics about each crypto function found from ref [5].
-  */
-
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/init.h>
@@ -37,16 +21,8 @@
 #include <linux/blkdev.h>
 #include <linux/hdreg.h>
 
-#include <linux/crypto.h>
-
 MODULE_LICENSE("Dual BSD/GPL");
 static char *Version = "1.4";
-
-
-/* GLOBALS */
-
-/* Crypto struct with general naming scheme */
-static struct crypto_cipher *tfm;
 
 static int major_num = 0;
 module_param(major_num, int, 0);
@@ -54,9 +30,6 @@ static int logical_block_size = 512;
 module_param(logical_block_size, int, 0);
 static int nsectors = 1024; /* How big the drive is */
 module_param(nsectors, int, 0);
-static char* enc_key = "Password123";
-module_param(enc_key, charp, 0);
-/* END GLOBALS */
 
 /*
  * We can tweak our hardware sector size, but the kernel talks to us
@@ -79,75 +52,22 @@ static struct sbd_device {
 	struct gendisk *gd;
 } Device;
 
-static void hex_dump(u8 *ptr, unsigned int length)
-{
-	int i;
-
-	for (i = 0 ; i < length ; i++){
-		printk("%02x ", ptr[i]);
-	}
-	printk("\n");
-}
-
-
 /*
  * Handle an I/O request.
  */
 static void sbd_transfer(struct sbd_device *dev, sector_t sector,
 		unsigned long nsect, char *buffer, int write) {
-
 	unsigned long offset = sector * logical_block_size;
 	unsigned long nbytes = nsect * logical_block_size;
-
-	u8 *hex_str;
-
-	unsigned int i;
-
-	if(crypto_cipher_setkey(tfm, enc_key, strlen(enc_key)) < 0){
-		printk("sbd_enc: Failed to set encryption key\n");
-		return;
-	} 
-	
 
 	if ((offset + nbytes) > dev->size) {
 		printk (KERN_NOTICE "sbd: Beyond-end write (%ld %ld)\n", offset, nbytes);
 		return;
-	} if (write) {
-		//dest , src, size
-		//memcpy(dev->data + offset, buffer, nbytes);
-
-		printk("sbd_enc: Begin write/encryption\n");
-
-		for(i = 0; i < nbytes +1; i += crypto_cipher_blocksize(tfm)){
-			crypto_cipher_encrypt_one(tfm, dev->data + offset + i, buffer + i);
-		}
-
-		printk("sbd_enc: printing original hex data\n");
-		hex_str = buffer;
-		hex_dump(hex_str,sizeof(hex_str));
-
-		printk("sbd_enc: printing encrypted hex data\n");
-		hex_str = dev->data + offset;
-		hex_dump(hex_str,sizeof(hex_str));
-
-	} else {
-		//memcpy(buffer, dev->data + offset, nbytes);
-		//cipher_decrypt_unaligned(struct crypto_tfm *tfm, u8 *dst, const u8 *src)
-
-		printk("sbd_enc: Begin read/decryption\n");
-
-		for(i = 0; i < nbytes +1; i += crypto_cipher_blocksize(tfm)){
-			crypto_cipher_decrypt_one(tfm, buffer + i,dev->data + offset + i);
-		}
-
-		printk("sbd_enc: printing original hex data\n");
-		hex_str = dev->data + offset;
-		hex_dump(hex_str,sizeof(hex_str));
-
-		printk("sbd_enc: printing decrypted hex data\n");
-		hex_str = buffer;
-		hex_dump(hex_str,sizeof(hex_str));
 	}
+	if (write)
+		memcpy(dev->data + offset, buffer, nbytes);
+	else
+		memcpy(buffer, dev->data + offset, nbytes);
 }
 
 static void sbd_request(struct request_queue *q) {
@@ -163,8 +83,10 @@ static void sbd_request(struct request_queue *q) {
 			__blk_end_request_all(req, -EIO);
 			continue;
 		}
+
 		sbd_transfer(&Device, blk_rq_pos(req), blk_rq_cur_sectors(req),
-			bio_data(req->bio), rq_data_dir(req)); // ref [4];
+		bio_data(req->bio), rq_data_dir(req));
+		
 		if ( ! __blk_end_request_cur(req, 0) ) {
 			req = blk_fetch_request(q);
 		}
@@ -235,13 +157,6 @@ static int __init sbd_init(void) {
 	Device.gd->queue = Queue;
 	add_disk(Device.gd);
 
-	/* allocing cipher */
-	tfm = crypto_alloc_cipher("aes",0,0);
-	if(!tfm){
-		printk("sbd_enc: unable to alloc crypto.\n");
-		goto out;
-	}
-
 	return 0;
 
 out_unregister:
@@ -258,9 +173,6 @@ static void __exit sbd_exit(void)
 	unregister_blkdev(major_num, "sbd");
 	blk_cleanup_queue(Queue);
 	vfree(Device.data);
-
-	/* Freeing crypto */
-	crypto_free_cipher(tfm);
 }
 
 module_init(sbd_init);

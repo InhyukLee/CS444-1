@@ -55,10 +55,9 @@ module_param(logical_block_size, int, 0);
 static int nsectors = 1024; /* How big the drive is */
 module_param(nsectors, int, 0);
 
+#define KEY_SZ 8
 static char* key = "Password123";
 module_param(key, charp, 0);
-
-static int key_set = 0;
 /* END GLOBALS */
 
 /*
@@ -108,11 +107,11 @@ static void sbd_enc_transfer(struct sbd_enc_device *dev, sector_t sector,
 	unsigned int i;
 
 	
-	if(key_set == 0){
-		crypto_cipher_setkey(tfm, key, strlen(key));
-		printk("sbd_enc: encryption key set\n");
-		key_set = 1;
-	}
+	//if(key_set == 0){
+		crypto_cipher_setkey(tfm,(u8*)key,KEY_SZ);
+	//	printk("sbd_enc: encryption key set\n");
+	//	key_set = 1;
+	//}
  
 	hex_disk = dev->data + offset;
 	hex_buf = buffer;
@@ -136,6 +135,7 @@ static void sbd_enc_transfer(struct sbd_enc_device *dev, sector_t sector,
 		hex_dump(hex_str,sizeof(hex_str));
 
 		printk("sbd_enc: printing encrypted hex data\n");
+		hex_str = dev->data + offset;
 		hex_str = dev->data + offset;
 		hex_dump(hex_str,sizeof(hex_str));
 
@@ -276,7 +276,6 @@ static void __exit sbd_enc_exit(void)
 	put_disk(Device.gd);
 	unregister_blkdev(major_num, "sbd_enc");
 	blk_cleanup_queue(Queue);
-	vfree(Device.data);
 
 	printk("sbd_enc: freed block device.\n");
 }
