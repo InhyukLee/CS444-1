@@ -10,12 +10,16 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <time.h>
 //GLOBALS
 sem_t no_inserter;
-sem_t insert_switch;
-
 sem_t no_searcher;
 sem_t no_deleter;
+
+sem_t scounter;
+sem_t icounter;
+int searchcounter;
+int insertcounter;
 /////////
 
 struct list_node
@@ -29,9 +33,16 @@ struct list_head
 	struct list_node *head;
 };
 
-void *inserter(struct list_head *head, int d)
+void insert(struct list_head *head, int d)
 {
-	//wait for noInserter and insertswitch
+	//only one inserter will wait for no inserter, then all other inserter will wait for that particular inserter
+	sem_wait(&icounter);
+	insertcounter += 1;
+	if (insertcounter == 1) {
+		sem_wait(&no_inserter);
+	}
+	sem_post(&icounter);
+	
 	struct list_node *iterator;
 	struct list_node *temp;
 	if (head->head == NULL) {
@@ -50,45 +61,68 @@ void *inserter(struct list_head *head, int d)
 		iterator->next =  temp;
 	}
 	printf("Inserter %d: Inserted %d.\n", pthread_self(), d));
-	return;
 	//signal noInserter and insertswitch
+	sem_wait(&icounter);
+	insertcounter -= 1;
+	if (insertcounter == 0) {
+		sem_post(&no_inserter);
+	}
+	sem_post(&icounter);
 }
 
-void *searcher(struct list_head *head, int d)
+
+void search(struct list_head *head, int d)
 {
-	//wait for nosearcher
+	sem_wait(&scounter);
+	searchcounter += 1;
+	if (searchcounter == 1) {
+		sem_wait(&no_searcher);
+	}
+	sem_post(&scounter);
+	int searched = 0;
 	struct list_node *iterator;
 	if (head->head == NULL) {
 		printf("Searcher %d: Head is empty.\n", pthread_self());
-		return;
 	}
 	else {
 		iterator = head->head;
 		while (iterator != NULL) {
 			if (iterator->data == d) {
 				printf("Searcher %d: Found %d.\n", pthread_self(), d);
-				return;
+				searched = 1;
+				break;
 			}
 			else {
 				iterator =  iterator->next;
 			}
 		}
+		if (searched == 0) {
 		printf("Searcher %d: Could not find %d.\n", pthread_self(), d);
-		return;
+		}
 	}
-	//signal nosearcher
+	
+	sem_wait(&scounter);
+	searchcounter -= 1;
+	if (searchcounter == 0) {
+		sem_post(&no_searcher);
+	}
+	sem_post(&scounter);
 }
 
-void *deleter(struct list_head *head, int d)
-{
+void delete(struct list_head *head, int d)
+{	
 	//wait for nosearcher and noinserter
+	sem_wait(&no_searcher);
+	sem_wait(&no_inserter);
+	sem_wait(&no_deleter);
 	struct list_node *iterator, *iteratorp;
 	iteratorp = NULL;
 	int pos = 0;
+	int deleted = 0;
 	if (head->head == NULL) {
 		//print that the head is empty #thread num
 		printf("Deleter %d: Head is empty.\n",pthread_self());
-		return;
+		deleted = 1;
 	}
 	for (iterator = head->head; iterator != NULL; iteratorp = iterator, iterator = iterator->next) {
 		if (iterator->dat == d) {
@@ -97,22 +131,80 @@ void *deleter(struct list_head *head, int d)
 				free(iterator);
 				//print that the thread deleted:
 				printf("Deleter %d: Deleted %d.\n",pthread_self(), d);
-				return;
+				deleted = 1;
+				break;
 			}
 			else {
 				iteratorp->next = iterator->next;
 				free(iterator);
 				//prints that the thread deleted:
 				printf("Deleter %d: Deleted %d.\n",pthread_self(), d);
-				return;
+				deleted = 1;
+				break;
 			}
 		}
 	}
+	
 	//prints that the thread could not find x
+	if (deleted == 0) {
+		printf("Deleter %d: Could not find d.\n",pthread_self(), d);
+	}
 	//signal noinsert and nosearcher
+	sem_post(&no_searcher);
+	sem_post(&no_inserter);
+	sem_post(&no_deleter);
 }
+
+void *inserter(struct list_head *head) {
+	int x;
+	while(1) {
+		x  = rand() % 10;
+		insert(head, x);
+	}
+}
+
+void *searcher(struct list_head *head) {
+	int x;
+	while(1) {
+		x = rand() % 10;
+		search(head, x);
+	}
+}
+
+void *deleter(struct list_head *head) {
+	int x;
+	while(1) {
+		x =  rand() % 10;
+		delete(head, x);
+	}
+}
+
 
 int main()
 {	
+	struct list_head head;
+	int i;
+	srand(time(NULL));
+	pthread_t i_threads[3];
+	pthread_t s_threads[3];
+	pthread_t d_threads[3];
+	for (i = 0; i < 3; i++) {
+		pthread_create(&i_threads[i], NULL. inserter, &head);
+	}
+	for (i = 0; i < 3; i++) {
+		pthread_create(&s_threads[i], NULL. searcher, &head);
+	}
+	for (i = 0; i < 3; i++) {
+		pthread_create(&d_threads[i], NULL. deleter, &head);
+	}
+	for (i = 0; i < 3; i++) {
+		pthread_join(i_threads[i],NULL);
+	}
+	for (i = 0; i < 3; i++) {
+		pthread_join(s_threads[i],NULL);
+	}
+	for (i = 0; i < 3; i++) {
+		pthread_join(d_threads[i],NULL);
+	}
 	return 0;
 }
