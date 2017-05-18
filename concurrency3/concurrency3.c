@@ -11,6 +11,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <time.h>
+#include <semaphore.h>
 //GLOBALS
 sem_t no_inserter;
 sem_t no_searcher;
@@ -18,8 +19,8 @@ sem_t no_deleter;
 
 sem_t scounter;
 sem_t icounter;
-int searchcounter;
-int insertcounter;
+int searchcounter = 0;
+int insertcounter = 0;
 /////////
 
 struct list_node
@@ -60,7 +61,7 @@ void insert(struct list_head *head, int d)
 		temp->next = NULL;
 		iterator->next =  temp;
 	}
-	printf("Inserter %d: Inserted %d.\n", pthread_self(), d));
+	printf("Inserter %d: Inserted %d.\n", pthread_self(), d);
 	//signal noInserter and insertswitch
 	sem_wait(&icounter);
 	insertcounter -= 1;
@@ -125,7 +126,7 @@ void delete(struct list_head *head, int d)
 		deleted = 1;
 	}
 	for (iterator = head->head; iterator != NULL; iteratorp = iterator, iterator = iterator->next) {
-		if (iterator->dat == d) {
+		if (iterator->data == d) {
 			if (iteratorp == NULL) {
 				head->head = iterator->next;
 				free(iterator);
@@ -147,7 +148,7 @@ void delete(struct list_head *head, int d)
 	
 	//prints that the thread could not find x
 	if (deleted == 0) {
-		printf("Deleter %d: Could not find d.\n",pthread_self(), d);
+		printf("Deleter %d: Could not find %d.\n",pthread_self(), d);
 	}
 	//signal noinsert and nosearcher
 	sem_post(&no_searcher);
@@ -155,47 +156,59 @@ void delete(struct list_head *head, int d)
 	sem_post(&no_deleter);
 }
 
-void *inserter(struct list_head *head) {
+void *inserter(void *h) {
 	int x;
+	struct list_head *head = (struct list_head *)h;
 	while(1) {
 		x  = rand() % 10;
 		insert(head, x);
+		sleep(rand()%4);
 	}
 }
 
-void *searcher(struct list_head *head) {
+void *searcher(void *h) {
 	int x;
+	struct list_head *head = (struct list_head *)h;
 	while(1) {
 		x = rand() % 10;
 		search(head, x);
+		sleep(rand()%4);
 	}
 }
 
-void *deleter(struct list_head *head) {
+void *deleter(void *h) {
 	int x;
+	struct list_head *head = (struct list_head *)h;
 	while(1) {
 		x =  rand() % 10;
 		delete(head, x);
+		sleep(rand()%4);
 	}
 }
 
 
 int main()
 {	
-	struct list_head head;
+	sem_init(&no_inserter, 0, 1);
+	sem_init(&no_searcher, 0, 1);
+	sem_init(&no_deleter, 0, 1);
+	sem_init(&scounter, 0, 1);
+	sem_init(&icounter, 0, 1);
+	struct list_head *head;
+	head = malloc(sizeof(struct list_head));
 	int i;
 	srand(time(NULL));
 	pthread_t i_threads[3];
 	pthread_t s_threads[3];
 	pthread_t d_threads[3];
 	for (i = 0; i < 3; i++) {
-		pthread_create(&i_threads[i], NULL. inserter, &head);
+		pthread_create(&i_threads[i], NULL, inserter, head);
 	}
 	for (i = 0; i < 3; i++) {
-		pthread_create(&s_threads[i], NULL. searcher, &head);
+		pthread_create(&s_threads[i], NULL, searcher, head);
 	}
 	for (i = 0; i < 3; i++) {
-		pthread_create(&d_threads[i], NULL. deleter, &head);
+		pthread_create(&d_threads[i], NULL, deleter, head);
 	}
 	for (i = 0; i < 3; i++) {
 		pthread_join(i_threads[i],NULL);
