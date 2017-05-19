@@ -102,16 +102,10 @@ static void sbd_enc_transfer(struct sbd_enc_device *dev, sector_t sector,
 	unsigned long nbytes = nsect * logical_block_size;
 
 	u8 *hex_str, *hex_buf, *hex_disk;
-	
-
 	unsigned int i;
 
-	
-	//if(key_set == 0){
-		crypto_cipher_setkey(tfm,(u8*)key,KEY_SZ);
-	//	printk("sbd_enc: encryption key set\n");
-	//	key_set = 1;
-	//}
+	crypto_cipher_setkey(tfm,key,KEY_SZ);
+
  
 	hex_disk = dev->data + offset;
 	hex_buf = buffer;
@@ -126,18 +120,18 @@ static void sbd_enc_transfer(struct sbd_enc_device *dev, sector_t sector,
 		printk("sbd_enc: Begin write/encryption\n");
 
 		
-		for(i = 0; i < nbytes +1; i += crypto_cipher_blocksize(tfm)){
+		for(i = 0; i < nbytes; i += crypto_cipher_blocksize(tfm)){
 			crypto_cipher_encrypt_one(tfm, hex_disk + i, hex_buf + i);
 		}
 
 		printk("sbd_enc: printing original hex data\n");
 		hex_str = buffer;
-		hex_dump(hex_str,sizeof(hex_str));
+		hex_dump(hex_str,15);
 
 		printk("sbd_enc: printing encrypted hex data\n");
 		hex_str = dev->data + offset;
 		hex_str = dev->data + offset;
-		hex_dump(hex_str,sizeof(hex_str));
+		hex_dump(hex_str,15);
 
 	} else {
 		//memcpy(buffer, dev->data + offset, nbytes);
@@ -145,17 +139,17 @@ static void sbd_enc_transfer(struct sbd_enc_device *dev, sector_t sector,
 
 		printk("sbd_enc: Begin read/decryption\n");
 
-		for(i = 0; i < nbytes +1; i += crypto_cipher_blocksize(tfm)){
+		for(i = 0; i < nbytes; i += crypto_cipher_blocksize(tfm)){
 			crypto_cipher_decrypt_one(tfm, hex_buf + i,hex_disk + i);
 		}
 
 		printk("sbd_enc: printing original hex data\n");
 		hex_str = dev->data + offset;
-		hex_dump(hex_str,sizeof(hex_str));
+		hex_dump(hex_str,15);
 
 		printk("sbd_enc: printing decrypted hex data\n");
 		hex_str = buffer;
-		hex_dump(hex_str,sizeof(hex_str));
+		hex_dump(hex_str,15);
 	}
 }
 
