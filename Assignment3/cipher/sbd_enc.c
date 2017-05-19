@@ -10,18 +10,20 @@
 
 /**
  * REFS:
- * [0] http://elixir.free-electrons.com/linux/latest/source/crypto/cipher.c#L63
- * [1] http://www.makelinux.net/books/lkd2/ch16lev1sec6
- * [2] http://elixir.free-electrons.com/linux/latest/source/crypto/testmgr.c#L1045
- * [3] https://github.com/JonathanSalwan/stuffz/blob/master/lkm_samples/crypto_aes.c
- * [4] http://blog.superpat.com/2010/05/04/a-simple-block-driver-for-linux-kernel-2-6-31/comment-page-2/#comment-148884
- * [5] https://www.kernel.org/doc/html/v4.10/crypto/api-skcipher.html#single-block-cipher-api
+ * [0] http://www.leidinger.net/freebsd/dox/geom/html/de/de8/g__bde__crypt_8c_source.html
+ * [1] http://elixir.free-electrons.com/linux/latest/source/crypto/cipher.c#L63
+ * [2] http://www.makelinux.net/books/lkd2/ch16lev1sec6
+ * [3] http://elixir.free-electrons.com/linux/latest/source/crypto/testmgr.c#L1045
+ * [4] https://github.com/JonathanSalwan/stuffz/blob/master/lkm_samples/crypto_aes.c
+ * [5] http://blog.superpat.com/2010/05/04/a-simple-block-driver-for-linux-kernel-2-6-31/comment-page-2/#comment-148884
+ * [6] https://www.kernel.org/doc/html/v4.10/crypto/api-skcipher.html#single-block-cipher-api
  */
 
  /**
   * NOTES:
-  * This project is heavily based off [2] (Lines 1042 - 1050) as well as [3].
-  * specfics about each crypto function found from ref [5].
+  * Ref [0] (lines 164- 176) contains the freebsd version of this assignment 
+  * This project is heavily based off [3] (Lines 1042 - 1050) as well as [4].
+  * specfics about each crypto function found from ref [6].
   */
 
 #include <linux/module.h>
