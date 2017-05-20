@@ -105,13 +105,10 @@ static void sbd_enc_transfer(struct sbd_enc_device *dev, sector_t sector,
 
 	u8 *hex_str, *hex_buf, *hex_disk;
 	unsigned int i;
-
-	printk("sbd_enc: enc_key > %s\n",key);
-	crypto_cipher_setkey(tfm,key,strlen(key));
-
  
 	hex_disk = dev->data + offset;
 	hex_buf = buffer;
+	printk("sbd_enc: enc_key > %s\n",key);
 
 	if ((offset + nbytes) > dev->size) {
 		printk (KERN_NOTICE "sbd_enc: Beyond-end write (%ld %ld)\n", offset, nbytes);
@@ -122,7 +119,6 @@ static void sbd_enc_transfer(struct sbd_enc_device *dev, sector_t sector,
 
 		printk("sbd_enc: Begin write/encryption\n");
 
-		
 		for(i = 0; i < nbytes; i += crypto_cipher_blocksize(tfm)){
 			crypto_cipher_encrypt_one(tfm, hex_disk + i, hex_buf + i);
 		}
@@ -236,6 +232,9 @@ static int __init sbd_enc_init(void) {
 		printk(KERN_WARNING "sbd_enc: unable to alloc crypto.\n");
 		goto out;
 	}
+
+	printk("sbd_enc: enc_key > %s\n",key);
+	crypto_cipher_setkey(tfm,key,strlen(key));
 
 	/*
 	 * And the gendisk structure.
