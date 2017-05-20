@@ -106,7 +106,8 @@ static void sbd_enc_transfer(struct sbd_enc_device *dev, sector_t sector,
 	u8 *hex_str, *hex_buf, *hex_disk;
 	unsigned int i;
 
-	crypto_cipher_setkey(tfm,key,KEY_SZ);
+	printk("sbd_enc: enc_key > %s\n",key);
+	crypto_cipher_setkey(tfm,key,strlen(key));
 
  
 	hex_disk = dev->data + offset;

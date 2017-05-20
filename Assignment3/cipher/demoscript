@@ -58,9 +58,25 @@ then
         rm /mnt/demofile
         echo -e "\n$0: demo complete!";
         exit 0;
+        elif [[ "$1" == "listkey" ]];then
+        echo -e "listing encryption key from dmesg...\n";
+        dmesg | grep -a -m 1 "sbd_enc: enc_key >"
+        echo "if two or more keys appear use 'dmesg -c' to clear dmesg and re run I/O";
+        echo -e "\n";
     fi
-elif [ "$#" -eq 0 ]
+elif [ "$#" -eq 2 ]
 then
-    echo "$0: {setup | teardown}" >&2;
+    if [[ "$1" == "setup" ]];then
+        echo "$0: setting up..."
+        insmod sbd_enc.ko key="$2"
+        shred -z /dev/sbd_enc0
+        mkfs.ext2 /dev/sbd_enc0
+        mount /dev/sbd_enc0 /mnt/
+        lsmod
+        echo -e "\n$0: setup complete!";
+        exit 0;
+    fi
+else
+    echo "$0: {setup | teardown | listkey} {encryptionkey}" >&2;
     exit 1;
 fi
