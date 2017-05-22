@@ -79,11 +79,15 @@ static struct request_queue *Queue;
  */
 static struct sbd_enc_device {
         unsigned long size;
-        spinlock_t lock;
-        u8 *data;
-	struct gendisk *gd;
+        spinlock_t lock; /* prevents drivers from fighting over device. */
+        u8 *data; /* similar to unit8_t or unsigned int */
+	struct gendisk *gd; /* ??? */
 } Device;
 
+/**
+ * prints hex data at a address
+ * this is exactly the same as ref[4] dump function.
+ */
 static void hex_dump(u8 *ptr, unsigned int length) {
         int i;
 
@@ -116,6 +120,11 @@ static void sbd_enc_transfer(struct sbd_enc_device *dev, sector_t sector,
 	} if (write) {
 		printk("sbd_enc: Begin write/encryption\n");
 
+		/* 
+		 * encrypts only one block at a time to new data size 
+		 * Mcgrath hint during 5/18/17 lecture for block encryption was helpful.
+		 */
+
 		for(i = 0; i < nbytes; i += crypto_cipher_blocksize(tfm)){
 			crypto_cipher_encrypt_one(tfm, hex_disk + i, hex_buf + i);
 		}
@@ -132,6 +141,7 @@ static void sbd_enc_transfer(struct sbd_enc_device *dev, sector_t sector,
 	} else {
 		printk("sbd_enc: Begin read/decryption\n");
 
+		/* decrypts only one block at a time to full read data size */
 		for(i = 0; i < nbytes; i += crypto_cipher_blocksize(tfm)){
 			crypto_cipher_decrypt_one(tfm, hex_buf + i,hex_disk + i);
 		}
@@ -159,8 +169,13 @@ static void sbd_enc_request(struct request_queue *q) {
 			__blk_end_request_all(req, -EIO);
 			continue;
 		}
+
+		/** 
+		 * ref[4] (Sarge comment) makes code usuable for older Linux 3.14
+		 */
 		sbd_enc_transfer(&Device, blk_rq_pos(req), blk_rq_cur_sectors(req),
-			bio_data(req->bio), rq_data_dir(req)); // ref [4];
+			bio_data(req->bio), rq_data_dir(req));
+
 		if ( ! __blk_end_request_cur(req, 0) ) {
 			req = blk_fetch_request(q);
 		}
