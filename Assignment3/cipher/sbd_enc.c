@@ -6,7 +6,8 @@
  * Redistributable under the terms of the GNU GPL.
  */
 
-// SOURCE: http://blog.superpat.com/2010/05/04/a-simple-block-driver-for-linux-kernel-2-6-31/
+/* SOURCE: http://blog.superpat.com/2010/05/04/a-simple-block-driver-for-linux-kernel-2-6-31/ */
+/* Edited by Kevin Turkington & Alessandro Lim */
 
 /**
  * REFS:
@@ -39,7 +40,7 @@
 #include <linux/blkdev.h>
 #include <linux/hdreg.h>
 
-#include <linux/crypto.h>
+#include <linux/crypto.h> /* Encryption library */
 
 MODULE_LICENSE("Dual BSD/GPL");
 static char *Version = "1.4";
@@ -77,20 +78,19 @@ static struct request_queue *Queue;
  * The internal representation of our device.
  */
 static struct sbd_enc_device {
-	unsigned long size;
-	spinlock_t lock;
-	u8 *data;
+        unsigned long size;
+        spinlock_t lock;
+        u8 *data;
 	struct gendisk *gd;
 } Device;
 
-static void hex_dump(u8 *ptr, unsigned int length)
-{
-	int i;
+static void hex_dump(u8 *ptr, unsigned int length) {
+        int i;
 
-	for (i = 0 ; i < length ; i++){
-		printk("%02x ", ptr[i]);
-	}
-	printk("\n");
+        for (i = 0 ; i < length ; i++){
+                printk("%02x ", ptr[i]);
+        }
+        printk("\n");
 }
 
 
@@ -98,7 +98,7 @@ static void hex_dump(u8 *ptr, unsigned int length)
  * Handle an I/O request.
  */
 static void sbd_enc_transfer(struct sbd_enc_device *dev, sector_t sector,
-		unsigned long nsect, char *buffer, int write) {
+	unsigned long nsect, char *buffer, int write) {
 
 	unsigned long offset = sector * logical_block_size;
 	unsigned long nbytes = nsect * logical_block_size;
@@ -114,9 +114,6 @@ static void sbd_enc_transfer(struct sbd_enc_device *dev, sector_t sector,
 		printk (KERN_NOTICE "sbd_enc: Beyond-end write (%ld %ld)\n", offset, nbytes);
 		return;
 	} if (write) {
-		//dest , src, size
-		//memcpy(dev->data + offset, buffer, nbytes);
-
 		printk("sbd_enc: Begin write/encryption\n");
 
 		for(i = 0; i < nbytes; i += crypto_cipher_blocksize(tfm)){
@@ -133,9 +130,6 @@ static void sbd_enc_transfer(struct sbd_enc_device *dev, sector_t sector,
 		hex_dump(hex_str,15);
 
 	} else {
-		//memcpy(buffer, dev->data + offset, nbytes);
-		//cipher_decrypt_unaligned(struct crypto_tfm *tfm, u8 *dst, const u8 *src)
-
 		printk("sbd_enc: Begin read/decryption\n");
 
 		for(i = 0; i < nbytes; i += crypto_cipher_blocksize(tfm)){
@@ -268,6 +262,7 @@ static void __exit sbd_enc_exit(void)
 
 	/* Freeing crypto */
 	crypto_free_cipher(tfm);
+
 	del_gendisk(Device.gd);
 	put_disk(Device.gd);
 	unregister_blkdev(major_num, "sbd_enc");

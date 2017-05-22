@@ -1,0 +1,39 @@
+0. build kernel with following command prior to make -j4 all
+	source /scratch/opt/environment-setup-i586-poky-linux.csh
+	make -j4 all 
+	or (at TA request.)
+	make -j16 all
+
+1. place Makefile and sbd_enc.c in a build directory that doesnt contain a kernel (this make file will only work on os-class)
+
+2. In your kernel terminal run: 
+	source /scratch/opt/environment-setup-i586-poky-linux.csh
+	qemu-system-i386 -redir tcp:5637::22 -nographic -kernel linux-yocto-3.14/arch/x86/boot/bzImage -drive file=core-image-lsb-sdk-qemux86.ext3 -enable-kvm -usb -localtime --no-reboot --append "root=/dev/hda rwconsole=ttyS0 debug"
+
+3. In scp/build terminal run (WHEN KERNEL IS RUNNING):
+	make
+	scp -P 5637 sbd_enc.ko root@localhost:~
+	scp -P 5637 demoscript root@localhost:~
+
+4. Once files have been Scp'ed into the kernel run demo script
+
+DemoScript notes:
+Because its easy to forget things during a demo I've made a script with the following commands
+
+./demoscript setup
+	inserts the module, sets all of the block devices data to zero, then mounts the device.
+
+./demoscript setup thisIsMySuperSecetKey
+	does the same as above, but edits module paramter for your key.
+
+./demoscript teardown
+	rmmods the module, and unmounts the block device.
+
+./demoscript demo
+	runs the demo itself through the use of grep and cat commands.
+
+./demoscript listkey
+	lists the key used for encryption. If nothing is found or two keys are displayed use the following command:
+	dmesg -c
+	and run:
+	./demoscript demo
