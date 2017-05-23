@@ -1,0 +1,77 @@
+\documentclass[letterpaper,10pt,titlepage]{IEEEtran}
+
+\usepackage{graphicx}                                        
+\usepackage{amssymb}                                         
+\usepackage{amsmath}                                         
+\usepackage{amsthm}                                          
+
+\usepackage{alltt}                                           
+\usepackage{float}
+\usepackage{color}
+\usepackage{url}
+
+\usepackage{balance}
+\usepackage[TABBOTCAP, tight]{subfigure}
+\usepackage{enumitem}
+\usepackage{pstricks, pst-node}
+
+\usepackage{geometry}
+\geometry{textheight=8.5in, textwidth=6in}
+
+\newcommand{\cred}[1]{{\color{red}#1}}
+\newcommand{\cblue}[1]{{\color{blue}#1}}
+
+\usepackage{hyperref}
+\usepackage{geometry}
+
+\def\name{Alessandro Lim, Kevin Turkington}
+\author{\name}
+\title{CS 444 Assignment 3}
+
+%pull in the necessary preamble matter for pygments output
+%\input{pygments.tex}
+
+%% The following metadata will show up in the PDF properties
+\hypersetup{
+  colorlinks = true,
+  urlcolor = black,
+  pdfauthor = {\name},
+  pdfkeywords = {cs444 ``operating systems 2'' assignment 3},
+  pdftitle = {CS 444 Assignment 3},
+  pdfpagemode = UseNone
+}
+
+\begin{document}
+\maketitle
+\hrulefill
+
+\section{Assignment3 Questions}
+\subsection{What do you think the main point of this assignment is?}
+The main point of this assignment is to learn how to use a poorly documented API, such as the Kernel Crypto API which is implemented in this assignment. In addition to find resources to make newer drivers compatible with older implementations of a given Operating system.\\
+\subsection{How did you personally approach the problem? Design decisions, algorithm, etc.} When we started the assignment we first researched the a few keywords given in he assignment guidelines "sbd" and "sbull". This helped us figure out what block device we wanted to use (we used the sbd block device driver because the source code was significantly smaller than sbull's). After we choose a device driver we looked into the encryption methods, this part of the assignment was extremely difficult. The TA's provided a linux to cryptoloop.c which led me to the crypto.h library which seemed to have a collection of different encryption methods. And I began to research the different methods which was too helpful until I was reasearching encryption methods for freebsd I came across the\\ g\_bde\_crypt.c\cite{FreeBSDk57:online} which was the freebsd version of this assignment. Then I looked in to block encryption like g\_bde\_crypt.c does and found the a github from Johnathan salwan with an example for AES block encryption\cite{stuffzcr53:online}. and also found documentation for single block encryption from kernel.org\cite{BlockCip50:online}. After we were confident that the resources we found were sufficient we looked into loading the sbd device itself on the kernel. We used the Makefile from the the blog that had the source code for sbd.c \cite{ASimpleB97:online}. After multiple iterations of the Makefile and compiling in and outside of the kernel, we found out we needed to make the kernel object on os-class pointing to the kernel and scp the module in.\\
+
+\subsection{How did you ensure your solution was correct? Testing details, for instance.} Once we had a working version of the non encrypted sbd driver we checked the hex printouts of the data we were reading and writing, we saw slight differences between when using the encrypted version of the driver but this didnt seem clear to us or clear to demo to a TA. Instead we found out after mounting and creating a sbd\_enc device, we could grep for key words we made to files and find them in the sbd\_enc device (outside of the mount point). which was alot easier to verify than hexadecimal dumps of the data.\\
+
+\subsection{What did you learn?}Documentation is important, when creating a system or any piece of code. randomly searching source code and "userland" versions of libraries from the kernel can be extremely helpful for figuring out how exactly to start approaching a problem. And searching for programs created for other operating systems of similar architecture can have similar semantics, to the program you try to write.\\
+
+\begin{table*}
+\section{Work Log}
+\input{worklog.tex}
+\end{table*}
+
+\begin{table*}
+\section{Gitlog}
+\input{a3_gitlog.tex}
+\end{table*}
+
+    
+% bibliography
+\newpage
+\nocite{*}%if nothing is referenced it will still show up in refs
+\bibliographystyle{plain}
+\bibliography{refs}
+%end bibliography
+
+%input the pygmentized output of mt19937ar.c, using a (hopefully) unique name
+%this file only exists at compile time. Feel free to change that.
+\end{document}
