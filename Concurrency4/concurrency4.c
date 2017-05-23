@@ -44,7 +44,7 @@ void customer(int id)
 		no_customers++;
 
 		sem_post(&sleeping_barber);
-		//printf("customer %d: Wakes up barber\n",id);
+		printf("customer %d: Wakes up barber\n",id);
 		sem_wait(&barber_chair);
 	}
 	else if(open_chairs == 0){
