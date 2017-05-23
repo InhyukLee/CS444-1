@@ -1,0 +1,15 @@
+\begin{thebibliography}{1}
+
+\bibitem{LinuxMan31:online}
+Linux manpages online - man.cx manual pages.
+\newblock \url{https://man.cx/qemu-system-x86_64(1)}.
+\newblock (Accessed on 04/19/2017).
+
+\bibitem{qemusyst32:online}
+qemu-system-x86\_64(1) — qemu-system-x86 — debian jessie — debian
+  manpages.
+\newblock
+  \url{https://manpages.debian.org/jessie/qemu-system-x86/qemu-system-x86_64.1.en.html}.
+\newblock (Accessed on 04/19/2017).
+
+\end{thebibliography}

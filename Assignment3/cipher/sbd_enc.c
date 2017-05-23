@@ -58,7 +58,7 @@ module_param(logical_block_size, int, 0);
 static int nsectors = 1024; /* How big the drive is */
 module_param(nsectors, int, 0);
 
-#define KEY_SZ 8
+/* AES encryption key */
 static char* key = "Password123";
 module_param(key, charp, 0);
 /* END GLOBALS */
@@ -81,7 +81,7 @@ static struct sbd_enc_device {
         unsigned long size;
         spinlock_t lock; /* prevents drivers from fighting over device. */
         u8 *data; /* similar to unit8_t or unsigned int */
-	struct gendisk *gd; /* ??? */
+        struct gendisk *gd; /* ??? */
 } Device;
 
 /**
