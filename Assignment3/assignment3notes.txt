@@ -1,3 +1,0 @@
-http://www.friendlyarm.net/forum/topic/1896
-
-CANNOT INSMOD without editing KConfig and makefile
