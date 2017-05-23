@@ -68,8 +68,8 @@ void customer(int id)
 void *customer_thread(void* data){
 	
 	while(1){
-		//sleep(rand() % (2*open_chair_max) +open_chair_max);
-		sleep(rand() %6 + 1);
+		//sleep(rand() % (customer_modifier*open_chair_max) +1);
+		sleep(rand() %5 + 1);
 		
 		identifier++;
 		customer(identifier);
