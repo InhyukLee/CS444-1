@@ -16,12 +16,13 @@
 sem_t no_waiting_chairs;
 sem_t barber_chair;
 sem_t sleeping_barber;
+sem_t begin_haircut;
 
 int identifier = 0;
 int no_customers = 0;
 
 int open_chair_max = 4;
-const int customer_modifier = 3;
+const int customer_modifier = 2;
 
 int haircut_duration = 1;
 //END GLOBALS
@@ -30,13 +31,12 @@ void get_hair_cut(int id)
 {
 	printf("customer %d: Recieving haircut.\n",id);
 	sleep(haircut_duration);
-	printf("customer %d: haircut done.\n",id);
+	printf("customer %d: Haircut done.\n",id);
 }
 
 void customer(int id)
 {
 	int open_chairs;
-	int open_barber_chair;
 
 	//is barber sleeping?
 	sem_getvalue(&no_waiting_chairs,&open_chairs);
@@ -44,7 +44,7 @@ void customer(int id)
 		no_customers++;
 
 		sem_post(&sleeping_barber);
-		printf("customer %d: Wakes up barber\n",id);
+		//printf("customer %d: Wakes up barber\n",id);
 		sem_wait(&barber_chair);
 	}
 	else if(open_chairs == 0){
@@ -59,6 +59,8 @@ void customer(int id)
 		sem_wait(&barber_chair);
 		sem_post(&no_waiting_chairs);
 	}
+
+	sem_post(&begin_haircut);
 	get_hair_cut(id);
 	no_customers--;
 }
@@ -66,7 +68,8 @@ void customer(int id)
 void *customer_thread(void* data){
 	
 	while(1){
-		sleep(rand() % (2*open_chair_max) + open_chair_max);
+		//sleep(rand() % (2*open_chair_max) +open_chair_max);
+		sleep(rand() %6 + 1);
 		
 		identifier++;
 		customer(identifier);
@@ -75,9 +78,9 @@ void *customer_thread(void* data){
 
 void cut_hair()
 {
-	printf("barber: cutting customer hair.\n");
+	printf("barber: Cutting customer hair.\n");
 	sleep(haircut_duration);
-	printf("barber: cutting hair done.\n");
+	printf("barber: Done cutting hair.\n");
 }
 
 void barber()
@@ -85,12 +88,13 @@ void barber()
 	int open_chairs;
 
 	sem_getvalue(&no_waiting_chairs,&open_chairs);
-	if(open_chairs == open_chair_max){
+	if(open_chairs == open_chair_max && no_customers == 0){
 		printf("barber: sleeping...\n");
 		sem_wait(&sleeping_barber);
 		printf("barber: wokeup.\n");
 	}
 	sem_post(&barber_chair);
+	sem_wait(&begin_haircut);
 	cut_hair();
 }
 
@@ -114,9 +118,12 @@ int main(int argc,char* argv[])
 	int i;
 	pthread_t barber;
 	pthread_t customers[open_chair_max * customer_modifier];
+
+	
 	sem_init(&no_waiting_chairs,0,open_chair_max);
 	sem_init(&barber_chair,0,0);
 	sem_init(&sleeping_barber,0,0);
+	sem_init(&begin_haircut,0,0);
 
 	pthread_create(&barber,NULL,barber_thread,NULL);
 	for(i =0;i < open_chair_max * customer_modifier; i++){
