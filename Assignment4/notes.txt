@@ -1,2 +1,7 @@
 http://elixir.free-electrons.com/linux/latest/source/mm/slob.c
+https://en.wikipedia.org/wiki/Slab_allocation
+
+
+
+
 
