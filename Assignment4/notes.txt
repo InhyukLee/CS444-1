@@ -2,8 +2,19 @@ http://elixir.free-electrons.com/linux/latest/source/mm/slob.c
 https://en.wikipedia.org/wiki/Slab_allocation
 
 
-
 https://tssurya.wordpress.com/2014/08/19/adding-a-hello-world-system-call-to-linux-kernel-3-16-0/
+http://www.puschitz.com/LinuxTips.html
+
+
+//VERIFICATION FOR DEMO SCRIPT
+http://andorian.blogspot.com/2014/03/making-sense-of-procbuddyinfo.html
+
+Use GDB to test and prove best fit algorithm works.
+slob algorithm needs ability to switch between first fit and best fit.
+
+dead week another concurrency (smoker delima probably).
+
+
 
 
 
