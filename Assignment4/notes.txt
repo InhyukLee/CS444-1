@@ -1,7 +1,6 @@
 http://elixir.free-electrons.com/linux/latest/source/mm/slob.c
+https://www.kernel.org/doc/html/v4.10/process/adding-syscalls.html
 https://en.wikipedia.org/wiki/Slab_allocation
-
-
 https://tssurya.wordpress.com/2014/08/19/adding-a-hello-world-system-call-to-linux-kernel-3-16-0/
 http://www.puschitz.com/LinuxTips.html
 
@@ -18,5 +17,5 @@ dead week another concurrency (smoker delima probably).
 
 
 
-
-
+//sys table location
+/linux-yocto-3.14/arch/x86/syscalls

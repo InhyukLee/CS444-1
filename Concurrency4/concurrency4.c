@@ -17,6 +17,7 @@ sem_t no_waiting_chairs;
 sem_t barber_chair;
 sem_t sleeping_barber;
 sem_t begin_haircut;
+sem_t identifier_sem;
 
 int identifier = 0;
 int no_customers = 0;
@@ -71,7 +72,11 @@ void *customer_thread(void* data){
 		//sleep(rand() % (customer_modifier*open_chair_max) +1);
 		sleep(rand() %5 + 1);
 		
+		//allows for unqiue IDS
+		sem_wait(&identifier_sem);
 		identifier++;
+		sem_post(&identifier_sem);
+
 		customer(identifier);
 	}
 }
@@ -124,6 +129,7 @@ int main(int argc,char* argv[])
 	sem_init(&barber_chair,0,0);
 	sem_init(&sleeping_barber,0,0);
 	sem_init(&begin_haircut,0,0);
+	sem_init(&identifier_sem,0,1);
 
 	pthread_create(&barber,NULL,barber_thread,NULL);
 	for(i =0;i < open_chair_max * customer_modifier; i++){
