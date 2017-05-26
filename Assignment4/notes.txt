@@ -1,2 +1,6 @@
 http://elixir.free-electrons.com/linux/latest/source/mm/slob.c
+https://www.kernel.org/doc/html/v4.10/process/adding-syscalls.html
 
+
+//sys table location
+/linux-yocto-3.14/arch/x86/syscalls
