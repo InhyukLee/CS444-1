@@ -247,6 +247,7 @@ static void *slob_page_alloc(struct page *sp, size_t size, int align)
 
 	if (!best) { /* was best filled? */
 		slob_t *best_next;
+		slobidx_t avail = slob_units(best);
 
 		if (delta) { /* need to fragment head to align? */
 			best_next = slob_next(best);
@@ -274,7 +275,7 @@ static void *slob_page_alloc(struct page *sp, size_t size, int align)
 		sp->units -= units;
 		if (!sp->units)
 			clear_slob_page_free(sp);
-		return cur;
+		return best;
 	}
 
 	//if (slob_last(cur)) /* no longer needed */
