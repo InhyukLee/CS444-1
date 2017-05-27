@@ -81,6 +81,9 @@
  * Those with larger size contain their size in the first SLOB_UNIT of
  * memory, and the offset of the next free block in the second SLOB_UNIT.
  */
+
+/* Edited by: Kevin Turkington && Alessandro Lim */
+
 #if PAGE_SIZE <= (32767 * 2)
 typedef s16 slobidx_t;
 #else
