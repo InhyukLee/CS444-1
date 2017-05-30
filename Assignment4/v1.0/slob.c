@@ -219,12 +219,11 @@ static void slob_free_pages(void *b, int order)
  */
 static void *slob_page_alloc(struct page *sp, size_t size, int align)
 {
-	slob_t *prev, *cur,*best_prev = NULL, *best = NULL, *best_next, *aligned = NULL;
+	slob_t *prev, *cur,*best_prev = NULL, *best = NULL, *aligned = NULL;
 	int delta = 0, units = SLOB_UNITS(size), data_sz, best_sz_delta = SLOB_UNITS(size);
-	slobidx_t avail;
 
 	for (prev = NULL, cur = sp->freelist; ; prev = cur, cur = slob_next(cur)) {
-		avail = slob_units(cur);
+		slobidx_t avail = slob_units(cur);
 
 		if (align) {
 			aligned = (slob_t *)ALIGN((unsigned long)cur, align);
@@ -251,7 +250,8 @@ static void *slob_page_alloc(struct page *sp, size_t size, int align)
 	}
 
 	if (best != NULL) { /* was best filled? */
-		avail = slob_units(best);
+		slob_t *best_next;
+		slobidx_t avail = slob_units(best);
 		aligned = (slob_t *)ALIGN((unsigned long)best, align);
 		delta = aligned - best;
 
