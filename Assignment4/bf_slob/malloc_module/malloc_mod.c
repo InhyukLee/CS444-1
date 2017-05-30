@@ -2,9 +2,13 @@
 #include <linux/slab.h>
 #include <linux/random.h>
 
+/**
+ * Testing module for slob module.
+ */
+
 static int __init malloc_init(void){
     void *temp,*temp2;
-    int i =0,rando,rando2;
+    int i = 0,rando,rando2;
 
     for(i = 0; i < 999999;i++){
 
