@@ -81,9 +81,6 @@
  * Those with larger size contain their size in the first SLOB_UNIT of
  * memory, and the offset of the next free block in the second SLOB_UNIT.
  */
-
-/* Edited by: Kevin Turkington && Alessandro Lim */
-
 #if PAGE_SIZE <= (32767 * 2)
 typedef s16 slobidx_t;
 #else
@@ -219,75 +216,50 @@ static void slob_free_pages(void *b, int order)
  */
 static void *slob_page_alloc(struct page *sp, size_t size, int align)
 {
-	slob_t *prev, *cur,*best_prev = NULL, *best = NULL, *best_next, *aligned = NULL;
-	int delta = 0, units = SLOB_UNITS(size), data_sz, best_sz_delta = SLOB_UNITS(size);
-	slobidx_t avail;
+	slob_t *prev, *cur, *aligned = NULL;
+	int delta = 0, units = SLOB_UNITS(size);
 
 	for (prev = NULL, cur = sp->freelist; ; prev = cur, cur = slob_next(cur)) {
-		avail = slob_units(cur);
+		slobidx_t avail = slob_units(cur);
 
 		if (align) {
 			aligned = (slob_t *)ALIGN((unsigned long)cur, align);
 			delta = aligned - cur;
 		}
+		if (avail >= units + delta) { /* room enough? */
+			slob_t *next;
 
-		/* data allocation size */
-		data_sz = units + delta;
-
-		if(avail >= data_sz && (best == NULL || ((avail - data_sz) < best_sz_delta))){
-			best_prev = prev;
-			best = cur;
-			best_sz_delta = avail - data_sz;
-			/* exact fit was found */
-			if(best_sz_delta == 0){
-				break;
+			if (delta) { /* need to fragment head to align? */
+				next = slob_next(cur);
+				set_slob(aligned, avail - delta, next);
+				set_slob(cur, delta, aligned);
+				prev = cur;
+				cur = aligned;
+				avail = slob_units(cur);
 			}
-		}
 
-		/* PREVENTS INFINITE LOOP DONT REMOVE! */
-		if(slob_last(cur)){
-			break;
+			next = slob_next(cur);
+			if (avail == units) { /* exact fit? unlink. */
+				if (prev)
+					set_slob(prev, slob_units(prev), next);
+				else
+					sp->freelist = next;
+			} else { /* fragment */
+				if (prev)
+					set_slob(prev, slob_units(prev), cur + units);
+				else
+					sp->freelist = cur + units;
+				set_slob(cur + units, avail - units, next);
+			}
+
+			sp->units -= units;
+			if (!sp->units)
+				clear_slob_page_free(sp);
+			return cur;
 		}
+		if (slob_last(cur))
+			return NULL;
 	}
-
-	/* moved out of for loop to only alloc best fit. */
-	if (best != NULL) { /* was best filled? */
-		/* fill allocing parameters */
-		avail = slob_units(best);
-		aligned = (slob_t *)ALIGN((unsigned long)best, align);
-		delta = aligned - best;
-
-		if (delta) { /* need to fragment head to align? */
-			best_next = slob_next(best);
-			set_slob(aligned, avail - delta, best_next);
-			set_slob(best, delta, aligned);
-			best_prev = best;
-			best = aligned;
-			avail = slob_units(best);
-		}
-
-		best_next = slob_next(best);
-		if (avail == units) { /* exact fit? unlink. */
-			if (best_prev)
-				set_slob(best_prev, slob_units(best_prev), best_next);
-			else
-				sp->freelist = best_next;
-		} else { /* fragment */
-			if (best_prev)
-				set_slob(best_prev, slob_units(best_prev), best + units);
-			else
-				sp->freelist = best + units;
-			set_slob(best + units, avail - units, best_next);
-		}
-
-		sp->units -= units;
-		if (!sp->units)
-			clear_slob_page_free(sp);
-		return best;
-	}
-
-	//if (slob_last(cur)) /* no longer needed */
-	return NULL;
 }
 
 /*
@@ -308,6 +280,8 @@ static void *slob_alloc(size_t size, gfp_t gfp, int align, int node)
 	else
 		slob_list = &free_slob_large;
 
+	
+
 	spin_lock_irqsave(&slob_lock, flags);
 	/* Iterate through each partially free page, try to find room */
 	list_for_each_entry(sp, slob_list, list) {
@@ -316,9 +290,8 @@ static void *slob_alloc(size_t size, gfp_t gfp, int align, int node)
 		 * If there's a node specification, search for a partial
 		 * page with a matching node id in the freelist.
 		 */
-		if (node != NUMA_NO_NODE && page_to_nid(sp) != node){
+		if (node != NUMA_NO_NODE && page_to_nid(sp) != node)
 			continue;
-		}
 #endif
 		/* Enough room on this page? */
 		if (sp->units < SLOB_UNITS(size))
@@ -338,15 +311,13 @@ static void *slob_alloc(size_t size, gfp_t gfp, int align, int node)
 			list_move_tail(slob_list, prev->next);
 		break;
 	}
-
 	spin_unlock_irqrestore(&slob_lock, flags);
 
 	/* Not enough space: must allocate a new page */
 	if (!b) {
 		b = slob_new_pages(gfp & ~__GFP_ZERO, 0, node);
-		if (!b) {
+		if (!b)
 			return NULL;
-		}
 		sp = virt_to_page(b);
 		__SetPageSlab(sp);
 
@@ -675,7 +646,6 @@ void __init kmem_cache_init_late(void)
 	slab_state = FULL;
 }
 
-
 /**
  * sys_free_slob_space / sys_total_slob_space ~= 0
  */
@@ -747,4 +717,3 @@ asmlinkage long sys_free_slob_space(void){
 
 	return free_space;
 }
-

@@ -219,12 +219,11 @@ static void slob_free_pages(void *b, int order)
  */
 static void *slob_page_alloc(struct page *sp, size_t size, int align)
 {
-	slob_t *prev, *cur,*best_prev = NULL, *best = NULL, *best_next, *aligned = NULL;
+	slob_t *prev, *cur,*best_prev = NULL, *best = NULL, *aligned = NULL;
 	int delta = 0, units = SLOB_UNITS(size), data_sz, best_sz_delta = SLOB_UNITS(size);
-	slobidx_t avail;
 
 	for (prev = NULL, cur = sp->freelist; ; prev = cur, cur = slob_next(cur)) {
-		avail = slob_units(cur);
+		slobidx_t avail = slob_units(cur);
 
 		if (align) {
 			aligned = (slob_t *)ALIGN((unsigned long)cur, align);
@@ -250,10 +249,9 @@ static void *slob_page_alloc(struct page *sp, size_t size, int align)
 		}
 	}
 
-	/* moved out of for loop to only alloc best fit. */
 	if (best != NULL) { /* was best filled? */
-		/* fill allocing parameters */
-		avail = slob_units(best);
+		slob_t *best_next;
+		slobidx_t avail = slob_units(best);
 		aligned = (slob_t *)ALIGN((unsigned long)best, align);
 		delta = aligned - best;
 
@@ -674,77 +672,3 @@ void __init kmem_cache_init_late(void)
 {
 	slab_state = FULL;
 }
-
-
-/**
- * sys_free_slob_space / sys_total_slob_space ~= 0
- */
-
-/* funtionality copied from slob alloc */
-asmlinkage long sys_total_slob_space(void){
-	long num_pages = 0; /*total pages in all lists */
-	struct list_head *slob_list; /* head temp */
-	struct page *sp;
-	unsigned long flags;
-
-	printk("slob: running sys_total_slob_space\n");
-
-	spin_lock_irqsave(&slob_lock, flags);
-
-	/* small */
-	slob_list = &free_slob_small;
-	list_for_each_entry(sp, slob_list, list) {
-		num_pages++;
-	}
-
-	/* medium */
-	slob_list = &free_slob_medium;
-	list_for_each_entry(sp, slob_list, list) {
-		num_pages++;
-	}
-
-	/* large */
-	slob_list = &free_slob_large;
-	list_for_each_entry(sp, slob_list, list) {
-		num_pages++;
-	}
-
-	spin_unlock_irqrestore(&slob_lock, flags);
-
-	return num_pages * SLOB_UNITS(PAGE_SIZE);
-}
-
-/* funtionality copied from slob alloc */
-asmlinkage long sys_free_slob_space(void){
-	long free_space = 0; /* total unused space in all pages */
-	struct list_head *slob_list; /* head temp */
-	struct page *sp;
-	unsigned long flags;
-
-	printk("slob: running sys_free_slob_space\n");
-
-	spin_lock_irqsave(&slob_lock, flags);
-
-	/* small */
-	slob_list = &free_slob_small;
-	list_for_each_entry(sp, slob_list, list) {
-		free_space += sp->units;
-	}
-
-	/* medium */
-	slob_list = &free_slob_medium;
-	list_for_each_entry(sp, slob_list, list) {
-		free_space += sp->units;
-	}
-
-	/* large */
-	slob_list = &free_slob_large;
-	list_for_each_entry(sp, slob_list, list) {
-		free_space += sp->units;
-	}
-
-	spin_unlock_irqrestore(&slob_lock, flags);
-
-	return free_space;
-}
-
