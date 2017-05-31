@@ -6,11 +6,14 @@
 
 
 int main(void){
-    float ft = ((float)syscall(353)/(float)syscall(354));
+    long free_sp = syscall(353);
+    long total_sp = syscall(354); 
+
+    float ft = ((float)free_sp/(float)total_sp);
 
 
-    printf("free space: %lu\n",syscall(353));
-    printf("total space: %lu\n\n",syscall(354));
+    printf("free space: %lu\n",free_sp);
+    printf("total space: %lu\n\n",total_sp);
 
     printf("free/total: %f\n",ft);
 
