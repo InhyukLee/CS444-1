@@ -1,0 +1,91 @@
+\documentclass[letterpaper,10pt,titlepage]{IEEEtran}
+
+\usepackage{listings}
+\lstdefinestyle{customc}{
+  belowcaptionskip=1\baselineskip,
+  breaklines=true,
+  frame=L,
+  xleftmargin=\parindent,
+  language=C,
+  showstringspaces=false,
+  basicstyle=\footnotesize\ttfamily,
+  keywordstyle=\cred,
+  identifierstyle=\cblue,
+  stringstyle=\color{orange},
+}
+
+\usepackage{hyperref}% http://ctan.org/pkg/hyperref
+\hypersetup{%
+  colorlinks = true,
+  linkcolor  = black
+}
+
+\usepackage{graphicx}                                        
+\usepackage{amssymb}                                         
+\usepackage{amsmath}                                         
+\usepackage{amsthm}   
+
+
+\usepackage{alltt}                                           
+\usepackage{float}
+\usepackage{color}
+\usepackage{url}
+
+\usepackage{balance}
+\usepackage[TABBOTCAP, tight]{subfigure}
+\usepackage{enumitem}
+\usepackage{pstricks, pst-node}
+
+\usepackage{geometry}
+\geometry{textheight=8.5in, textwidth=6in}
+
+\newcommand{\cred}[1]{{\color{red}#1}}
+\newcommand{\cblue}[1]{{\color{blue}#1}}
+
+\usepackage{hyperref}
+\usepackage{geometry}
+
+\def\name{Kevin Turkington}
+\author{\name}
+\title{Kernel Constructs and Comparisons\\
+  	\large CS444 Final, Spring 2017}
+
+
+%% The following metadata will show up in the PDF properties
+\hypersetup{
+  colorlinks = true,
+  urlcolor = black,
+  pdfauthor = {\name},
+  pdfkeywords = {cs444 ``operating systems 2''Final},
+  pdfpagemode = UseNone
+}
+
+\begin{document}
+  \begin{titlepage}
+      \maketitle
+  \end{titlepage}
+\tableofcontents
+\listoffigures
+
+
+\section{introduction}
+Comparisons and differences will be made in context to Linux, Windows, and FreeBSD's vanilla configurations or any pre-installed option in any of the listed systems. As an overview, in most kernel implementations of drivers, file manipulation, and overall system handling between Linux and FreeBSD are extremely similar. With Windows often being the outlier, taking a different approach to these abstracted concepts. In this essay we will go over implementation of processes, overall I/O, memory management, and interrupts Between these popular operating system choices.
+
+\input{writing1.tex}
+
+\input{writing2.tex}
+
+\input{writing3.tex}
+
+\input{writing4.tex}
+
+\section{conclusion}
+In the preceding topics, I've provided an overview of Kernel implementations of various drivers, system calls, and other constructs in the context of Windows, and FreeBSD in comparison to Linux. As a overview observation of each of the kernel related functionality, there is a theme of FreeBSD and Linux containing many extreme similarities, with Windows taking a different route in terms core concepts implementation. However Windows, FreeBSD, and Linux keep the overall semantics of processes, I/O, memory, and Interrupts on an abstracted view the same.
+
+% bibliography
+\nocite{*}%if nothing is referenced it will still show up in refs
+\bibliographystyle{plain}
+\bibliography{refs}
+%end bibliography
+
+\end{document}
