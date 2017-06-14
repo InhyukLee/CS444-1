@@ -1,5 +1,7 @@
+// Use before building or running kernel
 source /scratch/opt/environment-setup-i586-poky-linux.csh 
 
+//Run kernel with GDB
 qemu-system-i386 -gdb tcp::5637 -S -nographic -kernel linux-yocto-3.14/arch/x86/boot/bzImage -drive file=core-image-lsb-sdk-qemux86.ext3 -enable-kvm -net none -usb -localtime --no-reboot --append "root=/dev/hda rwconsole=ttyS0 debug"
 
 //to make kernel:
@@ -8,13 +10,14 @@ make -j4 all
 //to access to the config:
 make menuconfig
 
-Run without gdb:
+//Run kernel with SSTF
 qemu-system-i386 -nographic -kernel linux-yocto-3.14/arch/x86/boot/bzImage -drive file=core-image-lsb-sdk-qemux86.ext3 -enable-kvm -usb -localtime --no-reboot --append "root=/dev/hda rwconsole=ttyS0 debug"
 
+
+//Allows files to be SCP'ed into a instance.
 qemu-system-i386 -redir tcp:5637::22 -nographic -kernel linux-yocto-3.14/arch/x86/boot/bzImage -drive file=core-image-lsb-sdk-qemux86.ext3 -enable-kvm -usb -localtime --no-reboot --append "root=/dev/hda rwconsole=ttyS0 debug"
 
-
-
+//SCP file into specifc instance.
 scp -P 5637 "filename" root@localhost:~
 
 
